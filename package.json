@@ -1,0 +1,10 @@
+{
+  "name": "kouji-gantt-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "工務店向け 工事工程ガント管理アプリ 初期版",
+  "scripts": {
+    "dev": "python3 -m http.server 5173",
+    "start": "python3 -m http.server 5173"
+  }
+}

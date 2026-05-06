@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工事工程ガント管理｜初期版</title>
+    <meta name="description" content="工務店向けの工事工程ガント管理アプリ初期版" />
+
+    <!-- Frappe Gantt: HTML/CSS/JSだけで利用するためCDN読込 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css" />
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Kouji Gantt Manager / Prototype</p>
+          <h1>工事工程ガント管理</h1>
+        </div>
+        <div class="topbar-actions">
+          <button id="loadSampleBtn" class="btn btn-ghost" type="button">サンプル再読込</button>
+          <button id="saveBtn" class="btn btn-primary" type="button">保存</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="sidebar">
+          <div class="panel-title-row">
+            <div>
+              <p class="eyebrow">Projects</p>
+              <h2>工事一覧</h2>
+            </div>
+            <button id="addProjectBtn" class="icon-btn" type="button" aria-label="工事を追加">＋</button>
+          </div>
+          <div id="projectList" class="project-list"></div>
+        </aside>
+
+        <section class="workspace">
+          <section class="project-summary card">
+            <div>
+              <p class="eyebrow">Selected Project</p>
+              <h2 id="projectTitle">-</h2>
+              <p id="projectMeta" class="muted">工事を選択してください。</p>
+            </div>
+            <div class="summary-grid">
+              <div>
+                <span>着工予定</span>
+                <strong id="summaryStart">-</strong>
+              </div>
+              <div>
+                <span>完工予定</span>
+                <strong id="summaryEnd">-</strong>
+              </div>
+              <div>
+                <span>工程数</span>
+                <strong id="summaryTaskCount">-</strong>
+              </div>
+              <div>
+                <span>状態</span>
+                <strong id="summaryStatus">-</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="toolbar card">
+            <div class="toolbar-left">
+              <button id="addTaskBtn" class="btn" type="button">工程を追加</button>
+              <button id="generateTemplateBtn" class="btn" type="button">テンプレート工程を追加</button>
+              <button id="deleteSelectedBtn" class="btn btn-danger" type="button">選択工程を削除</button>
+            </div>
+            <div class="toolbar-right">
+              <label class="field-inline">
+                表示単位
+                <select id="viewModeSelect">
+                  <option value="Day">日</option>
+                  <option value="Week">週</option>
+                  <option value="Month">月</option>
+                </select>
+              </label>
+              <label class="field-inline">
+                GAS URL
+                <input id="gasUrlInput" type="url" placeholder="未設定：サンプルデータで動作" />
+              </label>
+              <button id="loadFromGasBtn" class="btn btn-ghost" type="button">GAS読込</button>
+              <button id="saveToGasBtn" class="btn btn-ghost" type="button">GAS保存</button>
+            </div>
+          </section>
+
+          <section class="gantt-card card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Gantt Chart</p>
+                <h2>工程表</h2>
+              </div>
+              <p class="hint">バーをドラッグして日程変更、バー端をドラッグして工期変更できます。</p>
+            </div>
+            <div class="gantt-scroll">
+              <div id="gantt"></div>
+            </div>
+          </section>
+
+          <section class="task-table-card card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Task List</p>
+                <h2>工程一覧</h2>
+              </div>
+              <p class="hint">ガント操作が効きづらい端末では、一覧から編集してください。</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>工程</th>
+                    <th>分類</th>
+                    <th>開始日</th>
+                    <th>終了日</th>
+                    <th>工期</th>
+                    <th>進捗</th>
+                    <th>担当</th>
+                    <th>状態</th>
+                  </tr>
+                </thead>
+                <tbody id="taskTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="log-card card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Change Log</p>
+                <h2>変更履歴</h2>
+              </div>
+              <button id="clearLogsBtn" class="btn btn-ghost" type="button">履歴クリア</button>
+            </div>
+            <ul id="changeLogList" class="change-log"></ul>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="modalBackdrop" class="modal-backdrop" hidden aria-hidden="true">
+      <form id="taskForm" class="modal" autocomplete="off">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Task Editor</p>
+            <h2 id="modalTitle">工程編集</h2>
+          </div>
+          <button id="closeModalBtn" class="icon-btn" type="button" aria-label="閉じる">×</button>
+        </div>
+
+        <input id="taskId" type="hidden" />
+        <div class="form-grid">
+          <label>
+            工程名
+            <input id="taskName" required type="text" placeholder="例：クロス工事" />
+          </label>
+          <label>
+            分類
+            <select id="taskCategory">
+              <option value="事前準備">事前準備</option>
+              <option value="仮設">仮設</option>
+              <option value="解体">解体</option>
+              <option value="大工">大工</option>
+              <option value="電気">電気</option>
+              <option value="水道">水道</option>
+              <option value="内装">内装</option>
+              <option value="設備">設備</option>
+              <option value="確認">確認</option>
+              <option value="その他">その他</option>
+            </select>
+          </label>
+          <label>
+            開始日
+            <input id="taskStart" required type="date" />
+          </label>
+          <label>
+            終了日
+            <input id="taskEnd" required type="date" />
+          </label>
+          <label>
+            進捗率
+            <input id="taskProgress" type="number" min="0" max="100" step="5" />
+          </label>
+          <label>
+            担当 / 協力会社
+            <input id="taskContractor" type="text" placeholder="例：山田工務店" />
+          </label>
+          <label>
+            状態
+            <select id="taskStatus">
+              <option value="未着手">未着手</option>
+              <option value="進行中">進行中</option>
+              <option value="完了">完了</option>
+              <option value="保留">保留</option>
+              <option value="遅延">遅延</option>
+            </select>
+          </label>
+          <label class="span-2">
+            メモ
+            <textarea id="taskMemo" rows="3" placeholder="工程変更理由、現場メモなど"></textarea>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button id="deleteTaskInModalBtn" class="btn btn-danger" type="button">削除</button>
+          <div class="modal-actions-right">
+            <button class="btn btn-ghost" type="button" id="cancelModalBtn">キャンセル</button>
+            <button class="btn btn-primary" type="submit">保存</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.umd.js"></script>
+    <script src="./js/sampleData.js"></script>
+    <script src="./js/utils.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/gantt.js"></script>
+    <script src="./js/app.js"></script>
+  </body>
+</html>
