@@ -7,19 +7,16 @@ window.KoujiApi = (() => {
   }
 
   function saveGasUrl(url) {
-    localStorage.setItem(GAS_URL_KEY, url || "");
+    localStorage.setItem(GAS_URL_KEY, (url || "").trim());
   }
 
   function loadLocalState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
+
     try {
       const parsed = JSON.parse(raw);
-      return {
-        projects: (parsed.projects || []).map(KoujiUtils.normalizeProject),
-        tasks: (parsed.tasks || []).map(KoujiUtils.normalizeTask),
-        changeLogs: parsed.changeLogs || [],
-      };
+      return normalizeState(parsed);
     } catch (error) {
       console.warn("localStorageの読み込みに失敗しました", error);
       return null;
@@ -30,8 +27,8 @@ window.KoujiApi = (() => {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        projects: state.projects,
-        tasks: state.tasks,
+        projects: state.projects || [],
+        tasks: state.tasks || [],
         changeLogs: state.changeLogs || [],
         savedAt: new Date().toISOString(),
       })
@@ -39,52 +36,97 @@ window.KoujiApi = (() => {
   }
 
   function loadSampleState() {
-    return {
-      projects: window.SAMPLE_DATA.projects.map(KoujiUtils.normalizeProject),
-      tasks: window.SAMPLE_DATA.tasks.map(KoujiUtils.normalizeTask),
+    return normalizeState({
+      projects: window.SAMPLE_DATA.projects,
+      tasks: window.SAMPLE_DATA.tasks,
       changeLogs: [],
-    };
+    });
   }
 
   async function fetchFromGas(gasUrl) {
-    if (!gasUrl) throw new Error("GAS URLが未設定です。");
-    const url = new URL(gasUrl);
+    const baseUrl = normalizeGasUrl(gasUrl);
+    const url = new URL(baseUrl);
     url.searchParams.set("action", "loadAll");
-    const response = await fetch(url.toString(), { method: "GET" });
-    if (!response.ok) {
-      throw new Error(`GAS読込に失敗しました: ${response.status}`);
+    url.searchParams.set("t", Date.now().toString());
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    const data = await parseJsonResponse(response, "GAS読込");
+
+    if (!data.ok) {
+      throw new Error(data.message || "GAS読込に失敗しました。");
     }
-    const data = await response.json();
-    if (!data.ok) throw new Error(data.message || "GAS読込に失敗しました。");
-    return {
-      projects: (data.projects || []).map(KoujiUtils.normalizeProject),
-      tasks: (data.tasks || []).map(KoujiUtils.normalizeTask),
+
+    return normalizeState({
+      projects: data.projects || [],
+      tasks: data.tasks || [],
       changeLogs: data.changeLogs || [],
-    };
+    });
   }
 
   async function saveToGas(gasUrl, state) {
-    if (!gasUrl) throw new Error("GAS URLが未設定です。");
+    const baseUrl = normalizeGasUrl(gasUrl);
     const payload = {
       action: "saveAll",
-      projects: state.projects,
-      tasks: state.tasks,
+      projects: state.projects || [],
+      tasks: state.tasks || [],
       changeLogs: state.changeLogs || [],
     };
 
-    // GASのWebアプリはプリフライトを避けるため text/plain で送る。
-    const response = await fetch(gasUrl, {
+    // GASはapplication/jsonだと環境によってプリフライトで詰まりやすいため、text/plainで送る。
+    const response = await fetch(baseUrl, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
       body: JSON.stringify(payload),
+      redirect: "follow",
     });
 
-    if (!response.ok) {
-      throw new Error(`GAS保存に失敗しました: ${response.status}`);
+    const data = await parseJsonResponse(response, "GAS保存");
+
+    if (!data.ok) {
+      throw new Error(data.message || "GAS保存に失敗しました。");
     }
-    const data = await response.json();
-    if (!data.ok) throw new Error(data.message || "GAS保存に失敗しました。");
+
     return data;
+  }
+
+  function normalizeState(state) {
+    return {
+      projects: (state.projects || []).map(KoujiUtils.normalizeProject),
+      tasks: (state.tasks || []).map(KoujiUtils.normalizeTask),
+      changeLogs: state.changeLogs || [],
+    };
+  }
+
+  function normalizeGasUrl(gasUrl) {
+    const url = (gasUrl || "").trim();
+    if (!url) {
+      throw new Error("GAS URLが未設定です。");
+    }
+    if (!url.startsWith("https://")) {
+      throw new Error("GAS URLは https:// から始まるURLを指定してください。");
+    }
+    return url;
+  }
+
+  async function parseJsonResponse(response, label) {
+    if (!response.ok) {
+      throw new Error(`${label}に失敗しました: HTTP ${response.status}`);
+    }
+
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      console.error(`${label}レスポンス`, text);
+      throw new Error(`${label}の返答をJSONとして読み取れませんでした。GASの公開設定とURLを確認してください。`);
+    }
   }
 
   return {
