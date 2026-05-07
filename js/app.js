@@ -326,6 +326,8 @@
       return;
     }
 
+    const existingTask = state.tasks.find((item) => item.id === taskId);
+
     const task = KoujiUtils.normalizeTask({
       id: taskId,
       project_id: project.project_id,
@@ -336,6 +338,7 @@
       progress: el.taskProgress.value,
       contractor: el.taskContractor.value.trim(),
       status: el.taskStatus.value,
+      dependencies: existingTask?.dependencies || "",
       memo: el.taskMemo.value.trim(),
       source: el.taskId.value ? "manual" : "manual-add",
       is_manual_edited: true,
