@@ -1,4 +1,4 @@
-project_id,project_name,customer_name,site_address,project_type,planned_start,planned_end,status,manager,memo
-P-2026-001,〇〇様邸 新築工事,〇〇様,大阪府大阪市北区 サンプル住所,新築,2026-05-10,2026-07-05,予定,藤井,初期サンプル。足場あり・標準工程。
-P-2026-002,△△店舗 改装工事,△△店舗,大阪府大阪市中央区 サンプル住所,改装,2026-05-18,2026-06-18,進行中,山田,店舗改装。夜間作業の可能性あり。
-P-2026-003,□□マンション 内装工事,□□管理組合,兵庫県尼崎市 サンプル住所,内装,2026-06-01,2026-06-28,予定,佐藤,内装中心。足場なし想定。
+project_id,project_name,customer_name,site_address,project_type,planned_start,planned_end,status,project_folder,deleted_at,previous_folder,manager,memo
+P-2026-001,〇〇様邸 新築工事,〇〇様,大阪府大阪市北区 サンプル住所,新築,2026-05-10,2026-07-05,予定,pre-contract,,,藤井,初期サンプル。足場あり・標準工程。
+P-2026-002,△△店舗 改装工事,△△店舗,大阪府大阪市中央区 サンプル住所,改装,2026-05-18,2026-06-18,進行中,active,,,山田,店舗改装。夜間作業の可能性あり。
+P-2026-003,□□マンション 内装工事,□□管理組合,兵庫県尼崎市 サンプル住所,内装,2026-06-01,2026-06-28,予定,pre-contract,,,佐藤,内装中心。足場なし想定。

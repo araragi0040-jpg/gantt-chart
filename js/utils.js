@@ -32,6 +32,13 @@ window.KoujiUtils = (() => {
     return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)) + 1);
   }
 
+  function dayDelta(before, after) {
+    const beforeDate = toDate(before);
+    const afterDate = toDate(after);
+    const diff = afterDate.getTime() - beforeDate.getTime();
+    return Math.round(diff / (1000 * 60 * 60 * 24));
+  }
+
   function clampProgress(value) {
     const number = Number(value || 0);
     if (Number.isNaN(number)) return 0;
@@ -84,6 +91,9 @@ window.KoujiUtils = (() => {
       status: String(project.status || "予定"),
       manager: String(project.manager || ""),
       memo: String(project.memo || ""),
+      project_folder: String(project.project_folder || project.folder || ""),
+      deleted_at: String(project.deleted_at || ""),
+      previous_folder: String(project.previous_folder || ""),
     };
   }
 
@@ -119,6 +129,7 @@ window.KoujiUtils = (() => {
     formatDateJa,
     addDays,
     diffDays,
+    dayDelta,
     clampProgress,
     generateId,
     clone,

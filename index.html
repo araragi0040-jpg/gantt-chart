@@ -6,7 +6,6 @@
     <title>工事工程ガント管理｜初期版</title>
     <meta name="description" content="工務店向けの工事工程ガント管理アプリ初期版" />
 
-    <!-- Frappe Gantt: HTML/CSS/JSだけで利用するためCDN読込 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css" />
     <link rel="stylesheet" href="./css/style.css" />
   </head>
@@ -32,6 +31,14 @@
             </div>
             <button id="addProjectBtn" class="icon-btn" type="button" aria-label="工事を追加">＋</button>
           </div>
+
+          <div id="folderTabs" class="folder-tabs" aria-label="工事フォルダ">
+            <button class="folder-tab" type="button" data-folder="pre-contract">契約前 <span>0</span></button>
+            <button class="folder-tab" type="button" data-folder="active">着手中 <span>0</span></button>
+            <button class="folder-tab" type="button" data-folder="completed">完了 <span>0</span></button>
+            <button class="folder-tab" type="button" data-folder="trash">ゴミ箱 <span>0</span></button>
+          </div>
+
           <div id="projectList" class="project-list"></div>
         </aside>
 
@@ -41,6 +48,12 @@
               <p class="eyebrow">Selected Project</p>
               <h2 id="projectTitle">-</h2>
               <p id="projectMeta" class="muted">工事を選択してください。</p>
+              <div id="projectActionRow" class="project-action-row">
+                <button id="editProjectBtn" class="btn" type="button">工事情報を編集</button>
+                <button id="moveProjectToTrashBtn" class="btn btn-danger" type="button">ゴミ箱へ移動</button>
+                <button id="restoreProjectBtn" class="btn" type="button" hidden>復元</button>
+                <button id="permanentDeleteProjectBtn" class="btn btn-danger" type="button" hidden>完全削除</button>
+              </div>
             </div>
             <div class="summary-grid">
               <div>
@@ -59,6 +72,39 @@
                 <span>状態</span>
                 <strong id="summaryStatus">-</strong>
               </div>
+            </div>
+          </section>
+
+          <section class="date-control-card card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Project Dates</p>
+                <h2>工事日程の簡易変更</h2>
+              </div>
+              <p class="hint">着工日を変える時は、必要に応じて工程全体も同じ日数だけ移動できます。</p>
+            </div>
+            <div class="date-control-grid">
+              <div class="date-control-item">
+                <label for="quickStartInput">着工予定日</label>
+                <div class="date-stepper">
+                  <button id="startMinusBtn" class="icon-btn" type="button" aria-label="着工予定日を1日前へ">−</button>
+                  <input id="quickStartInput" type="date" />
+                  <button id="startPlusBtn" class="icon-btn" type="button" aria-label="着工予定日を1日後へ">＋</button>
+                </div>
+              </div>
+              <div class="date-control-item">
+                <label for="quickEndInput">完工予定日</label>
+                <div class="date-stepper">
+                  <button id="endMinusBtn" class="icon-btn" type="button" aria-label="完工予定日を1日前へ">−</button>
+                  <input id="quickEndInput" type="date" />
+                  <button id="endPlusBtn" class="icon-btn" type="button" aria-label="完工予定日を1日後へ">＋</button>
+                </div>
+              </div>
+              <label class="checkbox-field">
+                <input id="shiftTasksByStartCheckbox" type="checkbox" checked />
+                着工日変更時に、工程全体も同じ日数だけ移動する
+              </label>
+              <button id="applyProjectDatesBtn" class="btn btn-primary" type="button">日程を反映</button>
             </div>
           </section>
 
@@ -162,6 +208,7 @@
               <option value="事前準備">事前準備</option>
               <option value="仮設">仮設</option>
               <option value="解体">解体</option>
+              <option value="基礎">基礎</option>
               <option value="大工">大工</option>
               <option value="電気">電気</option>
               <option value="水道">水道</option>
@@ -207,6 +254,87 @@
           <button id="deleteTaskInModalBtn" class="btn btn-danger" type="button">削除</button>
           <div class="modal-actions-right">
             <button class="btn btn-ghost" type="button" id="cancelModalBtn">キャンセル</button>
+            <button class="btn btn-primary" type="submit">保存</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="projectModalBackdrop" class="modal-backdrop" hidden aria-hidden="true">
+      <form id="projectForm" class="modal" autocomplete="off">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Project Editor</p>
+            <h2 id="projectModalTitle">工事情報編集</h2>
+          </div>
+          <button id="closeProjectModalBtn" class="icon-btn" type="button" aria-label="閉じる">×</button>
+        </div>
+
+        <input id="projectId" type="hidden" />
+        <div class="form-grid">
+          <label>
+            工事名
+            <input id="projectName" required type="text" placeholder="例：山田様邸 新築工事" />
+          </label>
+          <label>
+            顧客名
+            <input id="projectCustomer" type="text" placeholder="例：山田太郎様" />
+          </label>
+          <label class="span-2">
+            現場住所
+            <input id="projectAddress" type="text" placeholder="例：大阪府大阪市..." />
+          </label>
+          <label>
+            工事区分
+            <select id="projectType">
+              <option value="新築">新築</option>
+              <option value="改装">改装</option>
+              <option value="内装">内装</option>
+              <option value="外構">外構</option>
+              <option value="その他">その他</option>
+            </select>
+          </label>
+          <label>
+            フォルダ
+            <select id="projectFolder">
+              <option value="pre-contract">契約前</option>
+              <option value="active">着手中</option>
+              <option value="completed">完了</option>
+              <option value="trash">ゴミ箱</option>
+            </select>
+          </label>
+          <label>
+            着工予定日
+            <input id="projectStart" required type="date" />
+          </label>
+          <label>
+            完工予定日
+            <input id="projectEnd" required type="date" />
+          </label>
+          <label>
+            状態
+            <select id="projectStatus">
+              <option value="契約前">契約前</option>
+              <option value="予定">予定</option>
+              <option value="進行中">進行中</option>
+              <option value="完了">完了</option>
+              <option value="保留">保留</option>
+            </select>
+          </label>
+          <label>
+            担当者
+            <input id="projectManager" type="text" placeholder="例：藤井" />
+          </label>
+          <label class="span-2">
+            メモ
+            <textarea id="projectMemo" rows="3" placeholder="工事全体のメモ"></textarea>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button id="deleteProjectInModalBtn" class="btn btn-danger" type="button">ゴミ箱へ移動</button>
+          <div class="modal-actions-right">
+            <button class="btn btn-ghost" type="button" id="cancelProjectModalBtn">キャンセル</button>
             <button class="btn btn-primary" type="submit">保存</button>
           </div>
         </div>

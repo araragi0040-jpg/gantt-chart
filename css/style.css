@@ -18,7 +18,6 @@
   box-sizing: border-box;
 }
 
-/* hidden属性が.modal-backdropのdisplay指定に負けないようにする */
 [hidden] {
   display: none !important;
 }
@@ -44,6 +43,14 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
 }
 
 .app-shell {
@@ -98,7 +105,7 @@ button {
 
 .layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 340px minmax(0, 1fr);
   gap: 1rem;
   padding: 1rem;
 }
@@ -145,6 +152,13 @@ button {
   align-items: stretch;
 }
 
+.project-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(110px, 1fr));
@@ -181,7 +195,8 @@ button {
 }
 
 .btn,
-.icon-btn {
+.icon-btn,
+.mini-btn {
   border: 1px solid var(--line);
   background: var(--panel-strong);
   color: var(--text);
@@ -192,8 +207,9 @@ button {
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.btn:hover,
-.icon-btn:hover {
+.btn:hover:not(:disabled),
+.icon-btn:hover:not(:disabled),
+.mini-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(80, 56, 31, 0.12);
 }
@@ -204,7 +220,7 @@ button {
   border-color: var(--primary);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--primary-dark);
 }
 
@@ -212,7 +228,8 @@ button {
   background: #fff8ef;
 }
 
-.btn-danger {
+.btn-danger,
+.mini-btn.danger {
   background: var(--danger-soft);
   color: var(--danger);
   border-color: #e7b7b7;
@@ -224,6 +241,48 @@ button {
   font-size: 1.2rem;
   display: inline-grid;
   place-items: center;
+}
+
+.mini-btn {
+  min-height: 32px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+}
+
+.folder-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.folder-tab {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff8ef;
+  color: var(--muted);
+  min-height: 42px;
+  padding: 0.5rem 0.65rem;
+  font-weight: 800;
+}
+
+.folder-tab span {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 1.55rem;
+  min-height: 1.55rem;
+  margin-left: 0.25rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-dark);
+  border: 1px solid var(--line);
+}
+
+.folder-tab.is-active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }
 
 .project-list {
@@ -238,7 +297,7 @@ button {
   background: var(--panel-strong);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 0.9rem;
+  padding: 0.75rem;
   color: var(--text);
 }
 
@@ -246,6 +305,15 @@ button {
   border-color: var(--primary);
   background: #fff0dc;
   box-shadow: inset 4px 0 0 var(--primary);
+}
+
+.project-main {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border: 0;
 }
 
 .project-card h3 {
@@ -257,6 +325,13 @@ button {
   margin: 0;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.project-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
 }
 
 .badge-row {
@@ -303,6 +378,51 @@ button {
   min-width: min(360px, 46vw);
 }
 
+.date-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr)) minmax(220px, 1.1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.date-control-item {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 0.86rem;
+}
+
+.date-stepper {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  gap: 0.4rem;
+}
+
+.date-stepper input {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  padding: 0.5rem 0.75rem;
+}
+
+.checkbox-field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 40px;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 0.86rem;
+}
+
+.checkbox-field input {
+  width: 18px;
+  height: 18px;
+}
+
 .gantt-card {
   min-width: 0;
 }
@@ -321,7 +441,6 @@ button {
   min-width: 880px;
 }
 
-/* Frappe Ganttの見た目を少し業務アプリ寄りに調整 */
 .gantt .bar {
   fill: var(--primary);
 }
@@ -454,6 +573,28 @@ tr:hover td {
   padding-top: 1rem;
 }
 
+.empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.65);
+  padding: 1rem;
+  text-align: center;
+}
+
+.empty-state.small {
+  min-height: 96px;
+  font-size: 0.9rem;
+}
+
+.empty-state.error {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
 .toast {
   position: fixed;
   right: 1rem;
@@ -472,6 +613,20 @@ tr:hover td {
   display: block;
 }
 
+.toast.error {
+  background: var(--danger);
+}
+
+.toast.info {
+  background: var(--primary-dark);
+}
+
+@media (max-width: 1200px) {
+  .date-control-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
 @media (max-width: 1060px) {
   .layout {
     grid-template-columns: 1fr;
@@ -483,7 +638,7 @@ tr:hover td {
   }
 
   .project-list {
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    grid-template-columns: repeat(3, minmax(240px, 1fr));
     overflow: auto;
     padding-bottom: 0.25rem;
   }
@@ -511,7 +666,8 @@ tr:hover td {
   .topbar-actions,
   .toolbar-left,
   .toolbar-right,
-  .modal-actions-right {
+  .modal-actions-right,
+  .project-action-row {
     width: 100%;
   }
 
@@ -527,12 +683,11 @@ tr:hover td {
     flex-direction: column;
   }
 
-  .project-list {
-    grid-template-columns: 1fr;
-  }
-
+  .project-list,
   .summary-grid,
-  .form-grid {
+  .form-grid,
+  .date-control-grid,
+  .folder-tabs {
     grid-template-columns: 1fr;
   }
 

@@ -174,3 +174,15 @@ log_id, timestamp, user, project_id, task_id, task_name, action_type, memo
 - 工程編集モーダルが閉じられない場合がある問題を修正しました。
 - `hidden` 属性が CSS の `display: grid` に負けないよう、`[hidden] { display: none !important; }` を追加しました。
 - Escapeキーでもモーダルを閉じられるようにしました。
+
+## v3 追加内容
+
+- 工事一覧を「契約前」「着手中」「完了」「ゴミ箱」のフォルダで切り替え
+- 工事情報編集モーダルを追加
+- 工事一覧からの削除は一度ゴミ箱へ移動
+- ゴミ箱内では「復元」「完全削除」が可能
+- 着工予定日・完工予定日を簡単に変更できる日程変更パネルを追加
+- 着工予定日変更時に、工程全体を同じ日数だけ移動するオプションを追加
+- GASの `01_projects` に `project_folder / deleted_at / previous_folder` 列を追加
+
+既存スプレッドシートを使う場合は、GASの `setupSheets()` を再実行してヘッダーを更新してください。その後、画面側から一度「GAS保存」を行うと新しい列構成で保存されます。
