@@ -1,23 +1,25 @@
 /**
- * 工事工程ガント管理アプリ GAS API 初期版
+ * 工事工程ガント管理アプリ GAS API
  *
  * 使い方:
  * 1. Googleスプレッドシートを作成
- * 2. 拡張機能 > Apps Script にこの Code.gs を貼り付け
- * 3. SPREADSHEET_ID を設定
- * 4. setupSheets() を一度実行してシート作成
+ * 2. シート側で「拡張機能 > Apps Script」を開く
+ * 3. この Code.gs を貼り付ける
+ * 4. setupSheets() を1回実行して権限許可
  * 5. デプロイ > 新しいデプロイ > ウェブアプリ
  *    - 実行ユーザー: 自分
- *    - アクセスできるユーザー: 必要に応じて設定
- * 6. 発行URLをフロント画面の GAS URL に貼り付け
+ *    - アクセスできるユーザー: 全員、または組織内
+ * 6. 発行された /exec のURLをVercel側のGAS URL欄に貼り付ける
  */
 
-const SPREADSHEET_ID = 'ここにスプレッドシートIDを入れてください';
+// スプレッドシートに紐づくGASなら空欄でOK。
+// スタンドアロンGASで使う場合だけ、スプレッドシートIDを入れてください。
+const SPREADSHEET_ID = '';
 
 const SHEETS = {
-  PROJECTS: '01_工事台帳',
-  TASKS: '04_工程データ',
-  LOGS: '05_変更履歴',
+  PROJECTS: '01_projects',
+  TASKS: '04_tasks',
+  LOGS: '05_change_logs',
 };
 
 const PROJECT_HEADERS = [
@@ -29,6 +31,9 @@ const PROJECT_HEADERS = [
   'planned_start',
   'planned_end',
   'status',
+  'project_folder',
+  'deleted_at',
+  'previous_folder',
   'manager',
   'memo',
 ];
@@ -62,36 +67,66 @@ const LOG_HEADERS = [
 
 function doGet(e) {
   try {
-    const action = (e && e.parameter && e.parameter.action) || 'loadAll';
+    const action = getParam_(e, 'action', 'loadAll');
 
     if (action === 'ping') {
-      return jsonOutput({ ok: true, message: 'pong' });
+      return jsonOutput_({ ok: true, message: 'pong', now: new Date().toISOString() });
     }
 
     if (action === 'loadAll') {
-      return jsonOutput(loadAll());
+      return jsonOutput_(loadAll_());
     }
 
-    return jsonOutput({ ok: false, message: 'unknown action: ' + action });
+    if (action === 'listProjects') {
+      return jsonOutput_({ ok: true, projects: readProjects_() });
+    }
+
+    if (action === 'listTasks') {
+      const projectId = getParam_(e, 'project_id', '');
+      const tasks = readTasks_().filter(task => !projectId || task.project_id === projectId);
+      return jsonOutput_({ ok: true, tasks });
+    }
+
+    return jsonOutput_({ ok: false, message: 'unknown action: ' + action });
   } catch (error) {
-    return jsonOutput({ ok: false, message: error.message, stack: error.stack });
+    return jsonOutput_({ ok: false, message: error.message, stack: error.stack });
   }
 }
 
 function doPost(e) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(30000);
+
     const bodyText = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
     const body = JSON.parse(bodyText);
     const action = body.action || 'saveAll';
 
     if (action === 'saveAll') {
-      saveAll(body);
-      return jsonOutput({ ok: true, message: 'saved' });
+      saveAll_(body);
+      return jsonOutput_({ ok: true, message: 'saved', savedAt: new Date().toISOString() });
     }
 
-    return jsonOutput({ ok: false, message: 'unknown action: ' + action });
+    if (action === 'saveTasks') {
+      writeTasks_(body.tasks || []);
+      appendLogs_(body.changeLogs || []);
+      return jsonOutput_({ ok: true, message: 'tasks saved', savedAt: new Date().toISOString() });
+    }
+
+    if (action === 'appendLogs') {
+      appendLogs_(body.changeLogs || []);
+      return jsonOutput_({ ok: true, message: 'logs appended', savedAt: new Date().toISOString() });
+    }
+
+    return jsonOutput_({ ok: false, message: 'unknown action: ' + action });
   } catch (error) {
-    return jsonOutput({ ok: false, message: error.message, stack: error.stack });
+    return jsonOutput_({ ok: false, message: error.message, stack: error.stack });
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (error) {
+      // lock未取得時の例外は無視
+    }
   }
 }
 
@@ -102,36 +137,60 @@ function setupSheets() {
   ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS);
 }
 
-function loadAll() {
-  const ss = getSpreadsheet_();
-  const projectsSheet = ensureSheet_(ss, SHEETS.PROJECTS, PROJECT_HEADERS);
-  const tasksSheet = ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS);
-  const logsSheet = ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS);
-
+function loadAll_() {
   return {
     ok: true,
-    projects: readObjects_(projectsSheet),
-    tasks: readObjects_(tasksSheet),
-    changeLogs: readObjects_(logsSheet),
+    projects: readProjects_(),
+    tasks: readTasks_(),
+    changeLogs: readLogs_(),
   };
 }
 
-function saveAll(payload) {
+function saveAll_(payload) {
   const ss = getSpreadsheet_();
-  const projectsSheet = ensureSheet_(ss, SHEETS.PROJECTS, PROJECT_HEADERS);
-  const tasksSheet = ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS);
-  const logsSheet = ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS);
+  writeObjects_(ensureSheet_(ss, SHEETS.PROJECTS, PROJECT_HEADERS), PROJECT_HEADERS, payload.projects || []);
+  writeObjects_(ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS), TASK_HEADERS, payload.tasks || []);
+  writeObjects_(ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS), LOG_HEADERS, payload.changeLogs || []);
+}
 
-  writeObjects_(projectsSheet, PROJECT_HEADERS, payload.projects || []);
-  writeObjects_(tasksSheet, TASK_HEADERS, payload.tasks || []);
-  writeObjects_(logsSheet, LOG_HEADERS, payload.changeLogs || []);
+function readProjects_() {
+  const ss = getSpreadsheet_();
+  return readObjects_(ensureSheet_(ss, SHEETS.PROJECTS, PROJECT_HEADERS));
+}
+
+function readTasks_() {
+  const ss = getSpreadsheet_();
+  return readObjects_(ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS));
+}
+
+function readLogs_() {
+  const ss = getSpreadsheet_();
+  return readObjects_(ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS));
+}
+
+function writeTasks_(tasks) {
+  const ss = getSpreadsheet_();
+  writeObjects_(ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS), TASK_HEADERS, tasks);
+}
+
+function appendLogs_(logs) {
+  if (!logs.length) return;
+  const ss = getSpreadsheet_();
+  const sheet = ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS);
+  const values = logs.map(log => LOG_HEADERS.map(header => normalizeWriteValue_(log[header])));
+  sheet.getRange(sheet.getLastRow() + 1, 1, values.length, LOG_HEADERS.length).setValues(values);
 }
 
 function getSpreadsheet_() {
-  if (!SPREADSHEET_ID || SPREADSHEET_ID === 'ここにスプレッドシートIDを入れてください') {
-    throw new Error('SPREADSHEET_ID が未設定です。');
+  if (SPREADSHEET_ID) {
+    return SpreadsheetApp.openById(SPREADSHEET_ID);
   }
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (!active) {
+    throw new Error('スプレッドシートに紐づくGASではありません。SPREADSHEET_IDを設定してください。');
+  }
+  return active;
 }
 
 function ensureSheet_(ss, sheetName, headers) {
@@ -140,27 +199,33 @@ function ensureSheet_(ss, sheetName, headers) {
     sheet = ss.insertSheet(sheetName);
   }
 
-  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(headers.length, sheet.getLastColumn() || 1)).getValues()[0];
+  const lastColumn = Math.max(sheet.getLastColumn(), headers.length);
+  const currentHeaders = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
   const needsHeader = headers.some((header, index) => currentHeaders[index] !== header);
+
   if (needsHeader) {
-    sheet.clear();
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
   }
+
   return sheet;
 }
 
 function readObjects_(sheet) {
   const values = sheet.getDataRange().getValues();
   if (values.length <= 1) return [];
+
   const headers = values[0].map(String);
-  return values.slice(1).filter(row => row.some(cell => cell !== '')).map(row => {
-    const obj = {};
-    headers.forEach((header, index) => {
-      obj[header] = normalizeCell_(row[index]);
+  return values
+    .slice(1)
+    .filter(row => row.some(cell => cell !== ''))
+    .map(row => {
+      const obj = {};
+      headers.forEach((header, index) => {
+        obj[header] = normalizeReadValue_(row[index]);
+      });
+      return obj;
     });
-    return obj;
-  });
 }
 
 function writeObjects_(sheet, headers, rows) {
@@ -169,18 +234,28 @@ function writeObjects_(sheet, headers, rows) {
   sheet.setFrozenRows(1);
 
   if (!rows.length) return;
-  const values = rows.map(row => headers.map(header => row[header] ?? ''));
+
+  const values = rows.map(row => headers.map(header => normalizeWriteValue_(row[header])));
   sheet.getRange(2, 1, values.length, headers.length).setValues(values);
 }
 
-function normalizeCell_(value) {
+function normalizeReadValue_(value) {
   if (value instanceof Date) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
   return value;
 }
 
-function jsonOutput(data) {
+function normalizeWriteValue_(value) {
+  if (value === undefined || value === null) return '';
+  return value;
+}
+
+function getParam_(e, key, defaultValue) {
+  return e && e.parameter && e.parameter[key] !== undefined ? e.parameter[key] : defaultValue;
+}
+
+function jsonOutput_(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
