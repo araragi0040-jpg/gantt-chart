@@ -54,7 +54,7 @@
       const localState = KoujiApi.loadLocalState();
       initial = localState || KoujiApi.loadSampleState();
       if (!localState) {
-        notify("サンプルデータで初期表示しました。", "info");
+        notify("初期データを表示しました。", "info");
       }
     }
 
@@ -108,12 +108,9 @@
       "deleteSelectedBtn",
       "taskId",
       "taskName",
-      "taskCategory",
       "taskStart",
       "taskEnd",
       "taskProgress",
-      "taskContractor",
-      "taskStatus",
       "taskMemo",
       "saveTaskBtn",
       "deleteTaskBtn",
@@ -147,12 +144,12 @@
     });
 
     el.loadSampleBtn.addEventListener("click", () => {
-      if (!confirm("サンプルデータを再読込します。現在の内容は上書きされます。よろしいですか？")) return;
+      if (!confirm("初期データを再読込します。現在の内容は上書きされます。よろしいですか？")) return;
       setState(KoujiApi.loadSampleState());
       state.currentFolder = "active";
       ensureCurrentFolderHasSelection();
       renderAll();
-      persistLocalOnly(true, "サンプルデータを再読込しました。");
+      persistLocalOnly(true, "初期データを再読込しました。");
     });
 
     el.saveBtn.addEventListener("click", async () => {
@@ -368,7 +365,7 @@
       return;
     }
     if (!tasks.length) {
-      document.getElementById("gantt").innerHTML = `<div class="empty-state">工程がありません。「工程を追加」または「テンプレート工程を追加」を押してください。</div>`;
+      document.getElementById("gantt").innerHTML = `<div class="empty-state">工程がありません。「工程を追加」または「ひな形を追加」を押してください。</div>`;
       return;
     }
 
@@ -469,24 +466,18 @@
   function clearTaskForm() {
     el.taskId.value = "";
     el.taskName.value = "";
-    el.taskCategory.value = "その他";
     el.taskStart.value = "";
     el.taskEnd.value = "";
     el.taskProgress.value = 0;
-    el.taskContractor.value = "";
-    el.taskStatus.value = "未着手";
     el.taskMemo.value = "";
   }
 
   function setTaskForm(task) {
     el.taskId.value = task.id;
     el.taskName.value = task.name;
-    el.taskCategory.value = task.category || "その他";
     el.taskStart.value = task.start;
     el.taskEnd.value = task.end;
     el.taskProgress.value = Number(task.progress || 0);
-    el.taskContractor.value = task.contractor || "";
-    el.taskStatus.value = task.status || "未着手";
     el.taskMemo.value = task.memo || "";
   }
 
@@ -723,12 +714,12 @@
       id: taskId,
       project_id: project.project_id,
       name: el.taskName.value.trim() || "未設定工程",
-      category: el.taskCategory.value,
+      category: existingTask?.category || "その他",
       start,
       end,
       progress: el.taskProgress.value,
-      contractor: el.taskContractor.value.trim(),
-      status: el.taskStatus.value,
+      contractor: existingTask?.contractor || "",
+      status: existingTask?.status || "未着手",
       dependencies: existingTask?.dependencies || "",
       memo: el.taskMemo.value.trim(),
       source: el.taskId.value ? "manual" : "manual-add",

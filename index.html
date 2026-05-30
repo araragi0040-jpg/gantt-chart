@@ -20,9 +20,9 @@
           </div>
         </div>
         <div class="topbar-actions">
-          <button id="loadSampleBtn" class="btn btn-ghost" type="button">サンプル再読込</button>
+          <button id="loadSampleBtn" class="btn btn-ghost" type="button">初期データ</button>
           <button id="saveBtn" class="btn btn-primary" type="button">保存</button>
-          <button id="openDetailDrawerBtn" class="icon-btn" type="button" aria-label="工事詳細を開く">⚙</button>
+          <button id="openDetailDrawerBtn" class="icon-btn" type="button" aria-label="詳細を開く">⚙</button>
         </div>
       </header>
 
@@ -93,13 +93,13 @@
         <div class="drawer-header">
           <div>
             <p class="eyebrow">Project Detail</p>
-            <h2>工事詳細設定</h2>
+            <h2>詳細</h2>
           </div>
           <button id="closeDetailDrawerBtn" class="icon-btn" type="button" aria-label="閉じる">×</button>
         </div>
         <div class="drawer-body">
           <section class="detail-section">
-            <h3>工事情報</h3>
+            <h3>工事</h3>
             <input id="projectId" type="hidden" />
             <div class="form-grid">
               <label>
@@ -153,7 +153,7 @@
               </label>
             </div>
             <div class="detail-actions">
-              <button id="applyProjectInfoBtn" class="btn btn-primary" type="button">工事情報を保存</button>
+              <button id="applyProjectInfoBtn" class="btn btn-primary" type="button">工事を保存</button>
               <button id="moveProjectToTrashBtn" class="btn btn-danger" type="button">ゴミ箱へ移動</button>
               <button id="restoreProjectBtn" class="btn" type="button" hidden>復元</button>
               <button id="permanentDeleteProjectBtn" class="btn btn-danger" type="button" hidden>完全削除</button>
@@ -161,7 +161,7 @@
           </section>
 
           <section class="detail-section">
-            <h3>日程変更</h3>
+            <h3>日程</h3>
             <div class="date-control-grid one-col">
               <div class="date-control-item">
                 <label for="quickStartInput">着工予定日</label>
@@ -181,17 +181,17 @@
               </div>
               <label class="checkbox-field">
                 <input id="shiftTasksByStartCheckbox" type="checkbox" checked />
-                着工日変更時に、工程全体も同じ日数だけ移動する
+                着工日変更時、工程も同じ日数だけ移動
               </label>
               <button id="applyProjectDatesBtn" class="btn btn-primary" type="button">日程を反映</button>
             </div>
           </section>
 
           <section class="detail-section">
-            <h3>工程操作</h3>
+            <h3>工程</h3>
             <div class="toolbar-left">
               <button id="addTaskBtn" class="btn" type="button">工程を追加</button>
-              <button id="generateTemplateBtn" class="btn" type="button">テンプレート工程を追加</button>
+              <button id="generateTemplateBtn" class="btn" type="button">ひな形を追加</button>
               <button id="deleteSelectedBtn" class="btn btn-danger" type="button">選択工程を削除</button>
             </div>
             <label class="field-inline">
@@ -205,28 +205,12 @@
           </section>
 
           <section class="detail-section">
-            <h3>選択工程の編集</h3>
+            <h3>工程編集</h3>
             <input id="taskId" type="hidden" />
-            <div class="form-grid">
-              <label>
+            <div class="form-grid task-simple-grid">
+              <label class="span-2">
                 工程名
                 <input id="taskName" type="text" />
-              </label>
-              <label>
-                分類
-                <select id="taskCategory">
-                  <option value="事前準備">事前準備</option>
-                  <option value="仮設">仮設</option>
-                  <option value="解体">解体</option>
-                  <option value="基礎">基礎</option>
-                  <option value="大工">大工</option>
-                  <option value="電気">電気</option>
-                  <option value="水道">水道</option>
-                  <option value="内装">内装</option>
-                  <option value="設備">設備</option>
-                  <option value="確認">確認</option>
-                  <option value="その他">その他</option>
-                </select>
               </label>
               <label>
                 開始日
@@ -240,20 +224,6 @@
                 進捗率
                 <input id="taskProgress" type="number" min="0" max="100" step="5" />
               </label>
-              <label>
-                担当 / 協力会社
-                <input id="taskContractor" type="text" />
-              </label>
-              <label>
-                状態
-                <select id="taskStatus">
-                  <option value="未着手">未着手</option>
-                  <option value="進行中">進行中</option>
-                  <option value="完了">完了</option>
-                  <option value="保留">保留</option>
-                  <option value="遅延">遅延</option>
-                </select>
-              </label>
               <label class="span-2">
                 メモ
                 <textarea id="taskMemo" rows="3"></textarea>
@@ -266,12 +236,12 @@
           </section>
 
           <section class="detail-section">
-            <h3>連携設定</h3>
+            <h3>連携</h3>
             <label class="field-inline column">
               GAS URL
               <input id="gasUrlInput" type="url" placeholder="未設定：サンプルデータで動作" />
             </label>
-            <button id="loadFromGasBtn" class="btn btn-ghost" type="button">GASから再読込</button>
+            <button id="loadFromGasBtn" class="btn btn-ghost" type="button">GAS再読込</button>
           </section>
         </div>
       </aside>
