@@ -260,7 +260,7 @@ textarea:disabled {
 }
 
 #gantt {
-  min-width: 920px;
+  min-width: 0;
 }
 
 .gantt .bar {
@@ -313,6 +313,10 @@ textarea:disabled {
 .gantt .arrow,
 .popup-wrapper {
   z-index: 1 !important;
+}
+
+.gantt {
+  width: 100% !important;
 }
 
 .task-table-card {

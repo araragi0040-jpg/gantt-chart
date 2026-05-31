@@ -36,6 +36,7 @@ window.KoujiGantt = (() => {
       readonly_progress: false,
       move_dependencies: false,
       scroll_to: "start",
+      infinite_padding: false,
       holidays: {
         "rgba(200, 117, 45, 0.08)": "weekend",
       },

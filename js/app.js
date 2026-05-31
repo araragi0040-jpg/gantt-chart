@@ -16,7 +16,7 @@
     selectedTaskId: "",
     currentFolder: "active",
     viewMode: "Day",
-    viewType: "table",
+    viewType: "gantt",
     serverRevision: "",
     autosaveTimer: null,
     isSavingToGas: false,
