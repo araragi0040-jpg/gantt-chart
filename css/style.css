@@ -130,7 +130,17 @@ textarea:disabled {
 
 .view-toggle {
   display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+.view-mode-inline {
+  margin-right: 0.25rem;
+}
+
+.view-mode-inline select {
+  min-width: 68px;
 }
 
 .btn,
@@ -222,6 +232,14 @@ textarea:disabled {
 
 .gantt .today-highlight {
   fill: rgba(200, 117, 45, 0.1);
+}
+
+/* 進捗ハンドルは常時表示して掴みやすくする */
+.gantt .handle.progress {
+  opacity: 1 !important;
+  fill: var(--primary-dark);
+  transform: scale(1.12);
+  transform-origin: center;
 }
 
 /* Gantt 内UIがドロワー前面に出ないよう抑制 */
@@ -443,9 +461,39 @@ tr:hover td {
   border-top: 1px dashed var(--line);
 }
 
-.detail-section h3 {
-  margin: 0 0 0.55rem;
+.detail-section {
+  margin: 0;
+}
+
+.detail-section > summary {
+  list-style: none;
+  cursor: pointer;
   font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.detail-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-section > summary::after {
+  content: "＋";
+  color: var(--primary-dark);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.detail-section[open] > summary::after {
+  content: "−";
+}
+
+.detail-section > :not(summary) {
+  margin-top: 0.65rem;
 }
 
 .field-inline {
