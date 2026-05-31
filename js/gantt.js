@@ -1,3 +1,7 @@
+// Workaround for frappe-gantt@1.0.3 dist bug:
+// progress-handle mousedown writes to global y_on_start under strict mode.
+window.y_on_start = window.y_on_start ?? 0;
+
 window.KoujiGantt = (() => {
   let gantt = null;
   let onTaskClickHandler = () => {};

@@ -633,7 +633,7 @@ tr:hover td {
   border-radius: 14px;
   padding: 0.85rem 1rem;
   box-shadow: 0 18px 42px rgba(30, 20, 10, 0.24);
-  z-index: 120;
+  z-index: 1300;
 }
 
 .toast.is-show {
