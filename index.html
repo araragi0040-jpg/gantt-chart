@@ -27,11 +27,20 @@
       </header>
 
       <main class="layout full">
-        <section class="workspace-full card">
+        <div class="workspace-shell">
+          <aside class="deco-sidebar card" aria-label="ショートカット">
+            <button class="deco-nav-btn is-active" type="button" data-deco-action="board">📋<span>工程表</span></button>
+            <button class="deco-nav-btn" type="button" data-deco-action="task">✅<span>タスク</span></button>
+            <button class="deco-nav-btn" type="button" data-deco-action="photo">🖼<span>写真</span></button>
+            <button class="deco-nav-btn" type="button" data-deco-action="member">👥<span>メンバー</span></button>
+            <button class="deco-nav-btn" type="button" data-deco-action="settings">⚙<span>設定</span></button>
+          </aside>
+          <section class="workspace-full card">
           <div class="section-header">
             <div>
               <p class="eyebrow">Gantt Chart</p>
               <h2 id="projectTitle">工程表</h2>
+              <p class="sub-copy">工事の全体工程と進捗状況を管理します。</p>
             </div>
             <div class="view-toggle">
               <label class="field-inline view-mode-inline">
@@ -42,8 +51,8 @@
                   <option value="Month">月</option>
                 </select>
               </label>
-              <button id="viewGanttBtn" class="btn btn-ghost is-active" type="button">ガント表示</button>
-              <button id="viewTableBtn" class="btn btn-ghost" type="button">一覧表示</button>
+              <button id="viewGanttBtn" class="btn btn-ghost" type="button">ガント表示</button>
+              <button id="viewTableBtn" class="btn btn-ghost is-active" type="button">一覧表示</button>
             </div>
           </div>
           <p id="projectMeta" class="muted">工事を選択してください。</p>
@@ -55,21 +64,19 @@
               <table>
                 <thead>
                   <tr>
-                    <th>工程</th>
-                    <th>分類</th>
+                    <th>No.</th>
+                    <th>工程名</th>
                     <th>開始日</th>
                     <th>終了日</th>
-                    <th>工期</th>
-                    <th>進捗</th>
-                    <th>担当</th>
-                    <th>状態</th>
+                    <th>進捗率</th>
                   </tr>
                 </thead>
                 <tbody id="taskTableBody"></tbody>
               </table>
             </div>
           </section>
-        </section>
+          </section>
+        </div>
       </main>
 
       <div id="projectDrawerBackdrop" class="drawer-backdrop" hidden></div>
@@ -107,7 +114,7 @@
         </div>
         <div class="drawer-body">
           <details class="detail-section" data-section="project">
-            <summary>工事</summary>
+            <summary>🖼 工事</summary>
             <input id="projectId" type="hidden" />
             <div class="form-grid">
               <label>
@@ -166,7 +173,7 @@
           </details>
 
           <details class="detail-section" data-section="schedule">
-            <summary>日程</summary>
+            <summary>📅 日程</summary>
             <div class="date-control-grid one-col">
               <div class="date-control-item">
                 <label for="quickStartInput">着工予定日</label>
@@ -193,7 +200,7 @@
           </details>
 
           <details class="detail-section" data-section="task">
-            <summary>工程</summary>
+            <summary>🧾 工程</summary>
             <div class="toolbar-left">
               <button id="addTaskBtn" class="btn" type="button">工程を追加</button>
               <button id="generateTemplateBtn" class="btn" type="button">ひな形を追加</button>
@@ -218,9 +225,10 @@
               </label>
               <label class="span-2">
                 メモ
-                <textarea id="taskMemo" rows="3"></textarea>
+                <textarea id="taskMemo" rows="3" maxlength="200"></textarea>
               </label>
             </div>
+            <p id="taskMemoCount" class="char-count">0 / 200</p>
             <div class="detail-actions">
               <button id="saveTaskBtn" class="btn btn-primary" type="button">工程を保存</button>
               <button id="cancelTaskEditBtn" class="btn btn-ghost" type="button">取り消し</button>
@@ -229,7 +237,7 @@
           </details>
 
           <details class="detail-section" data-section="cloud">
-            <summary>保存先（クラウド）</summary>
+            <summary>☁ 保存先（クラウド）</summary>
             <label class="field-inline column">
               保存先URL
               <input id="gasUrlInput" type="url" placeholder="未設定：サンプルデータで動作" />

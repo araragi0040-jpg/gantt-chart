@@ -36,6 +36,9 @@ window.KoujiGantt = (() => {
       readonly_progress: false,
       move_dependencies: false,
       scroll_to: "start",
+      holidays: {
+        "rgba(200, 117, 45, 0.08)": "weekend",
+      },
       popup_on: "click",
       on_click: (task) => {
         onTaskClickHandler(task.id);

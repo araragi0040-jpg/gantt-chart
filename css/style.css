@@ -57,6 +57,12 @@ textarea:disabled {
   min-height: 100vh;
 }
 
+.sub-copy {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -100,6 +106,41 @@ textarea:disabled {
 .muted,
 .hint {
   color: var(--muted);
+}
+
+.workspace-shell {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 1rem;
+}
+
+.deco-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+.deco-nav-btn {
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  border-radius: 14px;
+  min-height: 78px;
+  display: grid;
+  place-items: center;
+  gap: 0.3rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.deco-nav-btn span {
+  font-size: 0.75rem;
+}
+
+.deco-nav-btn.is-active {
+  color: var(--primary-dark);
+  border-color: #efcda7;
+  background: #fff2df;
 }
 
 .layout {
@@ -214,12 +255,32 @@ textarea:disabled {
   padding: 0.5rem;
 }
 
+.topbar-actions #saveBtn::before {
+  content: "💾 ";
+}
+
 #gantt {
   min-width: 920px;
 }
 
 .gantt .bar {
   fill: var(--primary);
+}
+
+.gantt .bar-wrapper.category-新築 .bar {
+  fill: #d77d30;
+}
+
+.gantt .bar-wrapper.category-改装 .bar {
+  fill: #d9a132;
+}
+
+.gantt .bar-wrapper.category-内装 .bar {
+  fill: #5d86bf;
+}
+
+.gantt .bar-wrapper.category-外構 .bar {
+  fill: #8f74b6;
 }
 
 .gantt .bar-progress {
@@ -266,9 +327,41 @@ textarea:disabled {
 
 table {
   width: 100%;
-  min-width: 900px;
+  min-width: 700px;
   border-collapse: collapse;
   background: white;
+}
+
+tbody tr td:first-child {
+  font-weight: 800;
+  color: var(--primary-dark);
+  width: 56px;
+}
+
+.progress-cell {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.progress-cell span {
+  font-weight: 800;
+  color: var(--primary-dark);
+  font-size: 0.82rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: #f7e6d1;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e58a36, #c8752d);
 }
 
 th,
@@ -384,6 +477,11 @@ tr:hover td {
   font-weight: 800;
 }
 
+.folder-tab::before {
+  content: "📁";
+  margin-right: 0.35rem;
+}
+
 .folder-tab span {
   display: inline-flex;
   justify-content: center;
@@ -445,6 +543,23 @@ tr:hover td {
   font-size: 0.85rem;
 }
 
+.project-card p:nth-child(3)::before {
+  content: "🗓 ";
+}
+
+.project-card-actions .mini-btn::before {
+  margin-right: 0.25rem;
+}
+
+.project-card-actions .mini-btn[data-action="edit"]::before {
+  content: "✎";
+}
+
+.project-card-actions .mini-btn[data-action="trash"]::before,
+.project-card-actions .mini-btn[data-action="delete-forever"]::before {
+  content: "🗑";
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -487,6 +602,14 @@ tr:hover td {
   color: var(--primary-dark);
   font-size: 1rem;
   line-height: 1;
+}
+
+.char-count {
+  margin: 0.15rem 0 0;
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .detail-section[open] > summary::after {
@@ -649,6 +772,19 @@ tr:hover td {
 }
 
 @media (max-width: 960px) {
+  .workspace-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .deco-sidebar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .deco-nav-btn {
+    min-height: 68px;
+  }
+
   .topbar {
     align-items: stretch;
     flex-direction: column;

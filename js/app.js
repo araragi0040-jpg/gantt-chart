@@ -16,7 +16,7 @@
     selectedTaskId: "",
     currentFolder: "active",
     viewMode: "Day",
-    viewType: "gantt",
+    viewType: "table",
     serverRevision: "",
     autosaveTimer: null,
     isSavingToGas: false,
@@ -61,6 +61,7 @@
     setState(initial);
     ensureCurrentFolderHasSelection();
     renderAll();
+    syncTaskMemoCount();
     KoujiApi.saveLocalState(getPersistableState());
   }
 
@@ -70,6 +71,7 @@
       "projectList",
       "projectTitle",
       "projectMeta",
+      "ganttWrap",
       "viewGanttBtn",
       "viewTableBtn",
       "taskTableSection",
@@ -109,6 +111,7 @@
       "taskEnd",
       "taskProgress",
       "taskMemo",
+      "taskMemoCount",
       "saveTaskBtn",
       "cancelTaskEditBtn",
       "deleteTaskBtn",
@@ -139,6 +142,13 @@
     el.viewTableBtn.addEventListener("click", () => {
       state.viewType = "table";
       renderViewType();
+    });
+    document.querySelectorAll("[data-deco-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.decoAction;
+        if (action === "board") return;
+        notify("このメニューは準備中です。", "info");
+      });
     });
 
     el.loadSampleBtn.addEventListener("click", () => {
@@ -200,6 +210,7 @@
       const taskId = el.taskId.value || state.selectedTaskId;
       if (taskId) deleteTask(taskId);
     });
+    el.taskMemo.addEventListener("input", syncTaskMemoCount);
 
     el.viewModeSelect.addEventListener("change", (event) => {
       state.viewMode = event.target.value;
@@ -252,6 +263,7 @@
   function renderViewType() {
     const showTable = state.viewType === "table";
     el.taskTableSection.hidden = !showTable;
+    el.ganttWrap.hidden = showTable;
     el.viewTableBtn.classList.toggle("is-active", showTable);
     el.viewGanttBtn.classList.toggle("is-active", !showTable);
   }
@@ -287,7 +299,7 @@
       card.innerHTML = `
         <button class="project-main" type="button" data-action="select">
           <h3>${escapeHtml(project.project_name)}</h3>
-          <p>${escapeHtml(project.customer_name || "顧客未設定")}</p>
+          <p>${escapeHtml(project.customer_name || "担当未設定")}</p>
           <p>${escapeHtml(project.planned_start)} 〜 ${escapeHtml(project.planned_end)}</p>
           <div class="badge-row">
             <span class="badge">${escapeHtml(project.project_type)}</span>
@@ -386,18 +398,21 @@
   function renderTaskTable() {
     const tasks = getSelectedTasks();
     el.taskTableBody.innerHTML = "";
-    tasks.forEach((task) => {
+    tasks.forEach((task, index) => {
       const tr = document.createElement("tr");
       tr.className = `task-row ${task.id === state.selectedTaskId ? "is-selected" : ""}`;
+      const progress = Number(task.progress || 0);
       tr.innerHTML = `
-        <td><strong>${escapeHtml(task.name)}</strong><br><span class="muted">${escapeHtml(task.memo || "")}</span></td>
-        <td>${escapeHtml(task.category)}</td>
+        <td>${index + 1}</td>
+        <td><strong>${escapeHtml(task.name)}</strong></td>
         <td>${escapeHtml(task.start)}</td>
         <td>${escapeHtml(task.end)}</td>
-        <td>${KoujiUtils.taskDurationText(task)}</td>
-        <td>${Number(task.progress || 0)}%</td>
-        <td>${escapeHtml(task.contractor || "-")}</td>
-        <td><span class="badge">${escapeHtml(task.status)}</span></td>
+        <td>
+          <div class="progress-cell">
+            <span>${progress}%</span>
+            <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
+          </div>
+        </td>
       `;
       tr.addEventListener("click", () => {
         state.selectedTaskId = task.id;
@@ -407,6 +422,12 @@
       });
       el.taskTableBody.appendChild(tr);
     });
+  }
+
+  function syncTaskMemoCount() {
+    if (!el.taskMemoCount) return;
+    const length = (el.taskMemo.value || "").length;
+    el.taskMemoCount.textContent = `${length} / 200`;
   }
 
   function setProjectControlsDisabled(disabled) {
@@ -469,6 +490,7 @@
     el.taskEnd.value = "";
     el.taskProgress.value = 0;
     el.taskMemo.value = "";
+    syncTaskMemoCount();
   }
 
   function setTaskForm(task) {
@@ -478,6 +500,7 @@
     el.taskEnd.value = task.end;
     el.taskProgress.value = Number(task.progress || 0);
     el.taskMemo.value = task.memo || "";
+    syncTaskMemoCount();
   }
 
   function prepareNewTaskForm() {
