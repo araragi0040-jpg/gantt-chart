@@ -106,7 +106,7 @@
           <button id="closeDetailDrawerBtn" class="icon-btn" type="button" aria-label="閉じる">×</button>
         </div>
         <div class="drawer-body">
-          <details class="detail-section">
+          <details class="detail-section" data-section="project">
             <summary>工事</summary>
             <input id="projectId" type="hidden" />
             <div class="form-grid">
@@ -165,7 +165,7 @@
             </div>
           </details>
 
-          <details class="detail-section">
+          <details class="detail-section" data-section="schedule">
             <summary>日程</summary>
             <div class="date-control-grid one-col">
               <div class="date-control-item">
@@ -192,7 +192,7 @@
             </div>
           </details>
 
-          <details class="detail-section">
+          <details class="detail-section" data-section="task">
             <summary>工程</summary>
             <div class="toolbar-left">
               <button id="addTaskBtn" class="btn" type="button">工程を追加</button>
@@ -228,7 +228,7 @@
             </div>
           </details>
 
-          <details class="detail-section">
+          <details class="detail-section" data-section="cloud">
             <summary>保存先（クラウド）</summary>
             <label class="field-inline column">
               保存先URL

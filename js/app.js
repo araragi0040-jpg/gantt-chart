@@ -129,7 +129,7 @@
     el.openProjectDrawerBtn.addEventListener("click", () => setProjectDrawerOpen(true));
     el.closeProjectDrawerBtn.addEventListener("click", () => setProjectDrawerOpen(false));
     el.projectDrawerBackdrop.addEventListener("click", () => setProjectDrawerOpen(false));
-    el.openDetailDrawerBtn.addEventListener("click", () => setDetailDrawerOpen(true, true));
+    el.openDetailDrawerBtn.addEventListener("click", () => setDetailDrawerOpen(true));
     el.closeDetailDrawerBtn.addEventListener("click", () => setDetailDrawerOpen(false));
 
     el.viewGanttBtn.addEventListener("click", () => {
@@ -171,7 +171,7 @@
       if (action === "select") selectProject(projectId);
       if (action === "edit") {
         selectProject(projectId);
-        setDetailDrawerOpen(true, true);
+        setDetailDrawerOpen(true, "project");
       }
       if (action === "trash") moveProjectToTrash(projectId);
       if (action === "restore") restoreProject(projectId);
@@ -188,7 +188,11 @@
     el.endPlusBtn.addEventListener("click", () => stepProjectDate("end", 1));
     el.applyProjectDatesBtn.addEventListener("click", applyProjectDates);
 
-    el.addTaskBtn.addEventListener("click", prepareNewTaskForm);
+    el.addTaskBtn.addEventListener("click", () => {
+      if (!prepareNewTaskForm()) return;
+      setDetailDrawerOpen(true, "task");
+      el.taskName.focus();
+    });
     el.generateTemplateBtn.addEventListener("click", generateTemplateTasks);
     el.saveTaskBtn.addEventListener("click", saveTaskFromDrawer);
     el.cancelTaskEditBtn.addEventListener("click", resetTaskForm);
@@ -367,7 +371,7 @@
           state.selectedTaskId = taskId;
           renderTaskTable();
           renderTaskEditor();
-          setDetailDrawerOpen(true, true);
+          setDetailDrawerOpen(true, "task");
         },
         onTaskChange: (partialTask, actionType) => {
           updateTask(partialTask.id, partialTask, actionType || "ガント編集");
@@ -399,7 +403,7 @@
         state.selectedTaskId = task.id;
         renderTaskEditor();
         renderTaskTable();
-        setDetailDrawerOpen(true, true);
+        setDetailDrawerOpen(true, "task");
       });
       el.taskTableBody.appendChild(tr);
     });
@@ -433,13 +437,13 @@
     el.projectDrawerBackdrop.hidden = !open;
   }
 
-  function setDetailDrawerOpen(open, openFirstSection = false) {
+  function setDetailDrawerOpen(open, targetSection = "") {
     el.detailDrawer.classList.toggle("is-open", open);
     el.detailDrawer.setAttribute("aria-hidden", String(!open));
-    if (open && openFirstSection) {
+    if (open && targetSection) {
       const sections = el.detailDrawer.querySelectorAll("details.detail-section");
-      sections.forEach((section, index) => {
-        section.open = index === 0;
+      sections.forEach((section) => {
+        section.open = section.dataset.section === targetSection;
       });
     }
   }
@@ -476,17 +480,16 @@
     el.taskMemo.value = task.memo || "";
   }
 
-  function prepareNewTaskForm(focus = true) {
+  function prepareNewTaskForm() {
     const project = getSelectedProject();
     if (!project) {
       notify("先に工事を選択してください。", "error");
-      return;
+      return false;
     }
     clearTaskForm();
     el.taskStart.value = project.planned_start || KoujiUtils.getToday();
     el.taskEnd.value = project.planned_start || KoujiUtils.getToday();
-    setDetailDrawerOpen(true, true);
-    if (focus) el.taskName.focus();
+    return true;
   }
 
   function addProjectQuick() {
@@ -515,7 +518,7 @@
     addProjectLog("工事追加", project, `工事「${project.project_name}」を追加`);
     renderAll();
     setProjectDrawerOpen(false);
-    setDetailDrawerOpen(true, true);
+    setDetailDrawerOpen(true, "project");
     markDirty({ queueGas: true, toast: "新規工事を追加しました。" });
     el.projectName.focus();
   }
@@ -532,7 +535,7 @@
     if (selectedTask) {
       setTaskForm(selectedTask);
     } else {
-      prepareNewTaskForm(false);
+      prepareNewTaskForm();
     }
     notify("工程の入力を取り消しました。", "info");
   }

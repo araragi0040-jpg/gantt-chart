@@ -238,8 +238,9 @@ textarea:disabled {
 .gantt .handle.progress {
   opacity: 1 !important;
   fill: var(--primary-dark);
-  transform: scale(1.12);
-  transform-origin: center;
+  r: 7;
+  stroke: transparent;
+  stroke-width: 12px;
 }
 
 /* Gantt 内UIがドロワー前面に出ないよう抑制 */
