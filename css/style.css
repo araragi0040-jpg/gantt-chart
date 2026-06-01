@@ -108,41 +108,6 @@ textarea:disabled {
   color: var(--muted);
 }
 
-.workspace-shell {
-  display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 1rem;
-}
-
-.deco-sidebar {
-  display: grid;
-  align-content: start;
-  gap: 0.65rem;
-  padding: 0.75rem;
-}
-
-.deco-nav-btn {
-  border: 1px solid var(--line);
-  background: #fffdf8;
-  border-radius: 14px;
-  min-height: 78px;
-  display: grid;
-  place-items: center;
-  gap: 0.3rem;
-  font-weight: 800;
-  color: var(--muted);
-}
-
-.deco-nav-btn span {
-  font-size: 0.75rem;
-}
-
-.deco-nav-btn.is-active {
-  color: var(--primary-dark);
-  border-color: #efcda7;
-  background: #fff2df;
-}
-
 .layout {
   padding: 1rem;
 }
@@ -263,60 +228,221 @@ textarea:disabled {
   min-width: 0;
 }
 
-.gantt .bar {
-  fill: var(--primary);
+.table-gantt {
+  min-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
 }
 
-.gantt .bar-wrapper.category-新築 .bar {
-  fill: #d77d30;
+.table-gantt-head {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
 }
 
-.gantt .bar-wrapper.category-改装 .bar {
-  fill: #d9a132;
+.tg-left-head,
+.tg-left-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 80px 80px 84px;
+  align-items: center;
 }
 
-.gantt .bar-wrapper.category-内装 .bar {
-  fill: #5d86bf;
+.tg-left-head {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: #fff;
+  border-right: 1px solid var(--line);
 }
 
-.gantt .bar-wrapper.category-外構 .bar {
-  fill: #8f74b6;
+.tg-left-head > div {
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid #efe4d6;
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
-.gantt .bar-progress {
-  fill: var(--primary-dark);
+.tg-left-head > div:last-child {
+  border-right: 0;
 }
 
-.gantt .bar-label {
-  font-weight: 700;
+.tg-right-head {
+  overflow: hidden;
 }
 
-.gantt .today-highlight {
-  fill: rgba(200, 117, 45, 0.1);
+.tg-months {
+  display: flex;
+  border-bottom: 1px solid var(--line);
 }
 
-/* 進捗ハンドルは常時表示して掴みやすくする */
-.gantt .handle.progress {
-  opacity: 1 !important;
-  fill: var(--primary-dark);
-  r: 7;
-  stroke: transparent;
-  stroke-width: 12px;
+.tg-month {
+  min-height: 30px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.88rem;
+  border-right: 1px solid #efe4d6;
 }
 
-/* Gantt 内UIがドロワー前面に出ないよう抑制 */
-.gantt-container,
-.gantt .grid-header,
-.gantt .lower-text,
-.gantt .upper-text,
-.gantt .bar-wrapper,
-.gantt .arrow,
-.popup-wrapper {
-  z-index: 1 !important;
+.tg-days {
+  display: flex;
 }
 
-.gantt {
-  width: 100% !important;
+.tg-day {
+  min-height: 34px;
+  border-right: 1px solid #f1ebdf;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.tg-day strong {
+  font-size: 0.86rem;
+}
+
+.tg-day.sat strong,
+.tg-day.sat span {
+  color: #2f72bf;
+}
+
+.tg-day.sun strong,
+.tg-day.sun span {
+  color: #c74747;
+}
+
+.table-gantt-body {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  overflow: auto;
+}
+
+.tg-left-body {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #fff;
+  border-right: 1px solid var(--line);
+}
+
+.tg-row {
+  min-height: 52px;
+}
+
+.tg-left-row {
+  border-bottom: 1px solid #f0e7da;
+  cursor: pointer;
+}
+
+.tg-left-row > div {
+  border-right: 1px solid #f3ede2;
+  min-height: 52px;
+  display: grid;
+  align-items: center;
+  padding: 0 0.4rem;
+}
+
+.tg-left-row > div:last-child {
+  border-right: 0;
+}
+
+.tg-no,
+.tg-date,
+.tg-percent {
+  justify-content: center;
+  text-align: center;
+}
+
+.tg-no {
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+
+.tg-name {
+  font-weight: 800;
+}
+
+.tg-percent {
+  color: #d77d30;
+  font-weight: 800;
+}
+
+.tg-right-body {
+  position: relative;
+}
+
+.tg-grid-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tg-day-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(225, 212, 195, 0.55);
+}
+
+.tg-weekend-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(236, 126, 92, 0.06);
+}
+
+.tg-grid-row {
+  position: relative;
+  border-bottom: 1px solid #f0e7da;
+  cursor: pointer;
+}
+
+.tg-grid-bar {
+  position: absolute;
+  top: 14px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--bar-color) 55%, white);
+  background: color-mix(in srgb, var(--bar-color) 18%, white);
+  overflow: visible;
+}
+
+.tg-grid-bar-progress {
+  height: 100%;
+  background: var(--bar-color);
+  border-radius: 999px;
+}
+
+.tg-grid-bar-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fff;
+  pointer-events: none;
+}
+
+.tg-progress-handle {
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--bar-color);
+  background: #fff;
+  cursor: ew-resize;
 }
 
 .task-table-card {
@@ -776,19 +902,6 @@ tr:hover td {
 }
 
 @media (max-width: 960px) {
-  .workspace-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .deco-sidebar {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    align-items: stretch;
-  }
-
-  .deco-nav-btn {
-    min-height: 68px;
-  }
-
   .topbar {
     align-items: stretch;
     flex-direction: column;

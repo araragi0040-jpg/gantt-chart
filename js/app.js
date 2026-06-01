@@ -143,13 +143,6 @@
       state.viewType = "table";
       renderViewType();
     });
-    document.querySelectorAll("[data-deco-action]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const action = button.dataset.decoAction;
-        if (action === "board") return;
-        notify("このメニューは準備中です。", "info");
-      });
-    });
 
     el.loadSampleBtn.addEventListener("click", () => {
       if (!confirm("初期データを再読込します。現在の内容は上書きされます。よろしいですか？")) return;

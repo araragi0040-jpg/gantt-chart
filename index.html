@@ -6,7 +6,6 @@
     <title>工事工程ガント管理｜初期版</title>
     <meta name="description" content="工務店向けの工事工程ガント管理アプリ初期版" />
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.css" />
     <link rel="stylesheet" href="./css/style.css" />
   </head>
   <body>
@@ -27,15 +26,7 @@
       </header>
 
       <main class="layout full">
-        <div class="workspace-shell">
-          <aside class="deco-sidebar card" aria-label="ショートカット">
-            <button class="deco-nav-btn is-active" type="button" data-deco-action="board">📋<span>工程表</span></button>
-            <button class="deco-nav-btn" type="button" data-deco-action="task">✅<span>タスク</span></button>
-            <button class="deco-nav-btn" type="button" data-deco-action="photo">🖼<span>写真</span></button>
-            <button class="deco-nav-btn" type="button" data-deco-action="member">👥<span>メンバー</span></button>
-            <button class="deco-nav-btn" type="button" data-deco-action="settings">⚙<span>設定</span></button>
-          </aside>
-          <section class="workspace-full card">
+        <section class="workspace-full card">
           <div class="section-header">
             <div>
               <p class="eyebrow">Gantt Chart</p>
@@ -75,8 +66,7 @@
               </table>
             </div>
           </section>
-          </section>
-        </div>
+        </section>
       </main>
 
       <div id="projectDrawerBackdrop" class="drawer-backdrop" hidden></div>
@@ -251,7 +241,6 @@
 
     <div id="toast" class="toast" aria-live="polite"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@1.0.3/dist/frappe-gantt.umd.js"></script>
     <script src="./js/sampleData.js"></script>
     <script src="./js/utils.js"></script>
     <script src="./js/api.js"></script>
