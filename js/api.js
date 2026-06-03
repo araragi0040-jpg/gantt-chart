@@ -30,6 +30,7 @@ window.KoujiApi = (() => {
         projects: state.projects || [],
         tasks: state.tasks || [],
         changeLogs: state.changeLogs || [],
+        revision: state.revision || "",
         savedAt: new Date().toISOString(),
       })
     );
@@ -68,13 +69,14 @@ window.KoujiApi = (() => {
     });
   }
 
-  async function saveToGas(gasUrl, state) {
+  async function saveToGas(gasUrl, state, expectedRevision = "") {
     const baseUrl = normalizeGasUrl(gasUrl);
     const payload = {
       action: "saveAll",
       projects: state.projects || [],
       tasks: state.tasks || [],
       changeLogs: state.changeLogs || [],
+      expectedRevision: expectedRevision || "",
     };
 
     // GASはapplication/jsonだと環境によってプリフライトで詰まりやすいため、text/plainで送る。
@@ -90,7 +92,9 @@ window.KoujiApi = (() => {
     const data = await parseJsonResponse(response, "GAS保存");
 
     if (!data.ok) {
-      throw new Error(data.message || "GAS保存に失敗しました。");
+      const error = new Error(data.message || "GAS保存に失敗しました。");
+      if (data.code) error.code = data.code;
+      throw error;
     }
 
     return data;
@@ -101,6 +105,7 @@ window.KoujiApi = (() => {
       projects: (state.projects || []).map(KoujiUtils.normalizeProject),
       tasks: (state.tasks || []).map(KoujiUtils.normalizeTask),
       changeLogs: state.changeLogs || [],
+      revision: String(state.revision || ""),
     };
   }
 
