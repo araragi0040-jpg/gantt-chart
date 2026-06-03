@@ -238,7 +238,7 @@ textarea:disabled {
 
 .table-gantt-head {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 520px 1fr;
   background: #fff;
   border-bottom: 1px solid var(--line);
 }
@@ -246,7 +246,7 @@ textarea:disabled {
 .tg-left-head,
 .tg-left-row {
   display: grid;
-  grid-template-columns: 56px 1fr 80px 80px 84px;
+  grid-template-columns: 56px 220px 80px 80px 84px;
   align-items: center;
 }
 
@@ -318,7 +318,7 @@ textarea:disabled {
 
 .table-gantt-body {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 520px 1fr;
   overflow: auto;
 }
 
@@ -408,6 +408,7 @@ textarea:disabled {
 .tg-grid-bar {
   position: absolute;
   top: 14px;
+  cursor: pointer;
   height: 24px;
   border-radius: 6px;
   border: 1px solid #e97820;
@@ -444,21 +445,22 @@ textarea:disabled {
 .tg-resize-handle {
   position: absolute;
   top: 0;
-  width: 12px;
+  width: 22px;
   height: 100%;
   padding: 0;
   border: 0;
   background: transparent;
   opacity: 0;
   cursor: ew-resize;
+  z-index: 5;
 }
 
-.tg-resize-start {
-  left: -6px;
+.tg-resize-handle.start {
+  left: -11px;
 }
 
-.tg-resize-end {
-  right: -6px;
+.tg-resize-handle.end {
+  right: -11px;
 }
 
 .task-table-card {
