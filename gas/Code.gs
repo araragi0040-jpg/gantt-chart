@@ -20,7 +20,6 @@ const SHEETS = {
   PROJECTS: '01_projects',
   TASKS: '04_tasks',
   LOGS: '05_change_logs',
-  META: '99_meta',
 };
 
 const PROJECT_HEADERS = [
@@ -66,9 +65,6 @@ const LOG_HEADERS = [
   'memo',
 ];
 
-const META_HEADERS = ['key', 'value'];
-const META_LAST_REVISION_KEY = 'last_revision';
-
 function doGet(e) {
   try {
     const action = getParam_(e, 'action', 'loadAll');
@@ -107,8 +103,8 @@ function doPost(e) {
     const action = body.action || 'saveAll';
 
     if (action === 'saveAll') {
-      const revision = saveAll_(body);
-      return jsonOutput_({ ok: true, message: 'saved', savedAt: new Date().toISOString(), revision });
+      saveAll_(body);
+      return jsonOutput_({ ok: true, message: 'saved', savedAt: new Date().toISOString() });
     }
 
     if (action === 'saveTasks') {
@@ -124,7 +120,7 @@ function doPost(e) {
 
     return jsonOutput_({ ok: false, message: 'unknown action: ' + action });
   } catch (error) {
-    return jsonOutput_({ ok: false, message: error.message, code: error.code || '', stack: error.stack });
+    return jsonOutput_({ ok: false, message: error.message, stack: error.stack });
   } finally {
     try {
       lock.releaseLock();
@@ -139,52 +135,36 @@ function setupSheets() {
   ensureSheet_(ss, SHEETS.PROJECTS, PROJECT_HEADERS);
   ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS);
   ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS);
-  ensureSheet_(ss, SHEETS.META, META_HEADERS);
-  ensureMetaRow_(ss, META_LAST_REVISION_KEY, '');
 }
 
 function loadAll_() {
-  const ss = getSpreadsheet_();
   return {
     ok: true,
-    projects: readProjects_(ss),
-    tasks: readTasks_(ss),
-    changeLogs: readLogs_(ss),
-    revision: getMetaValue_(ss, META_LAST_REVISION_KEY),
+    projects: readProjects_(),
+    tasks: readTasks_(),
+    changeLogs: readLogs_(),
   };
 }
 
 function saveAll_(payload) {
   const ss = getSpreadsheet_();
-  const expectedRevision = String(payload.expectedRevision || '');
-  const currentRevision = getMetaValue_(ss, META_LAST_REVISION_KEY);
-  if (expectedRevision && currentRevision && expectedRevision !== currentRevision) {
-    throwConflictError_('他の端末で更新されています。再読込してから保存してください。');
-  }
-
   writeObjects_(ensureSheet_(ss, SHEETS.PROJECTS, PROJECT_HEADERS), PROJECT_HEADERS, payload.projects || []);
   writeObjects_(ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS), TASK_HEADERS, payload.tasks || []);
-  const existingLogs = readObjects_(ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS));
-  const mergedLogs = mergeLogsById_(existingLogs, payload.changeLogs || []);
-  writeObjects_(ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS), LOG_HEADERS, mergedLogs);
-
-  const nextRevision = generateRevision_();
-  setMetaValue_(ss, META_LAST_REVISION_KEY, nextRevision);
-  return nextRevision;
+  writeObjects_(ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS), LOG_HEADERS, payload.changeLogs || []);
 }
 
-function readProjects_(ssArg) {
-  const ss = ssArg || getSpreadsheet_();
+function readProjects_() {
+  const ss = getSpreadsheet_();
   return readObjects_(ensureSheet_(ss, SHEETS.PROJECTS, PROJECT_HEADERS));
 }
 
-function readTasks_(ssArg) {
-  const ss = ssArg || getSpreadsheet_();
+function readTasks_() {
+  const ss = getSpreadsheet_();
   return readObjects_(ensureSheet_(ss, SHEETS.TASKS, TASK_HEADERS));
 }
 
-function readLogs_(ssArg) {
-  const ss = ssArg || getSpreadsheet_();
+function readLogs_() {
+  const ss = getSpreadsheet_();
   return readObjects_(ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS));
 }
 
@@ -199,67 +179,6 @@ function appendLogs_(logs) {
   const sheet = ensureSheet_(ss, SHEETS.LOGS, LOG_HEADERS);
   const values = logs.map(log => LOG_HEADERS.map(header => normalizeWriteValue_(log[header])));
   sheet.getRange(sheet.getLastRow() + 1, 1, values.length, LOG_HEADERS.length).setValues(values);
-}
-
-function mergeLogsById_(existingLogs, incomingLogs) {
-  const map = {};
-  existingLogs.forEach(log => {
-    const key = String(log.log_id || '');
-    if (!key) return;
-    map[key] = log;
-  });
-  incomingLogs.forEach(log => {
-    const key = String(log.log_id || '');
-    if (!key) return;
-    map[key] = log;
-  });
-  return Object.keys(map)
-    .sort()
-    .map(key => map[key]);
-}
-
-function generateRevision_() {
-  return new Date().toISOString() + '_' + Utilities.getUuid().slice(0, 8);
-}
-
-function ensureMetaRow_(ss, key, defaultValue) {
-  const sheet = ensureSheet_(ss, SHEETS.META, META_HEADERS);
-  const values = sheet.getDataRange().getValues();
-  const hasRow = values.slice(1).some(row => String(row[0]) === key);
-  if (!hasRow) {
-    sheet.appendRow([key, defaultValue]);
-  }
-}
-
-function getMetaValue_(ss, key) {
-  ensureMetaRow_(ss, key, '');
-  const sheet = ensureSheet_(ss, SHEETS.META, META_HEADERS);
-  const values = sheet.getDataRange().getValues();
-  for (let i = 1; i < values.length; i += 1) {
-    if (String(values[i][0]) === key) {
-      return String(values[i][1] || '');
-    }
-  }
-  return '';
-}
-
-function setMetaValue_(ss, key, value) {
-  ensureMetaRow_(ss, key, value);
-  const sheet = ensureSheet_(ss, SHEETS.META, META_HEADERS);
-  const values = sheet.getDataRange().getValues();
-  for (let i = 1; i < values.length; i += 1) {
-    if (String(values[i][0]) === key) {
-      sheet.getRange(i + 1, 2).setValue(value);
-      return;
-    }
-  }
-  sheet.appendRow([key, value]);
-}
-
-function throwConflictError_(message) {
-  const error = new Error(message || '競合が発生しました。');
-  error.code = 'CONFLICT';
-  throw error;
 }
 
 function getSpreadsheet_() {

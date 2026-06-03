@@ -6,8 +6,6 @@
     { id: "trash", label: "ゴミ箱" },
   ];
 
-  const AUTOSAVE_DELAY_MS = 12000;
-
   const state = {
     projects: [],
     tasks: [],
@@ -16,53 +14,28 @@
     selectedTaskId: "",
     currentFolder: "active",
     viewMode: "Day",
-    viewType: "gantt",
-    serverRevision: "",
-    autosaveTimer: null,
-    isSavingToGas: false,
-    gasDirty: false,
   };
 
   const el = {};
 
-  document.addEventListener("DOMContentLoaded", () => {
-    init().catch((error) => {
-      console.error(error);
-      notify("初期化に失敗しました。画面を再読み込みしてください。", "error");
-    });
-  });
+  document.addEventListener("DOMContentLoaded", init);
 
-  async function init() {
+  function init() {
     bindElements();
     bindEvents();
 
     const gasUrl = KoujiApi.loadGasUrl();
     el.gasUrlInput.value = gasUrl;
 
-    let initial = null;
-    if (gasUrl) {
-      try {
-        const remote = await KoujiApi.fetchFromGas(gasUrl);
-        initial = remote;
-        notify("共有データを読み込みました。", "info");
-      } catch (error) {
-        console.warn(error);
-      }
-    }
-
-    if (!initial) {
-      const localState = KoujiApi.loadLocalState();
-      initial = localState || KoujiApi.loadSampleState();
-      if (!localState) {
-        notify("初期データを表示しました。", "info");
-      }
-    }
-
+    const localState = KoujiApi.loadLocalState();
+    const initial = localState || KoujiApi.loadSampleState();
     setState(initial);
     ensureCurrentFolderHasSelection();
     renderAll();
-    syncTaskMemoCount();
-    KoujiApi.saveLocalState(getPersistableState());
+
+    if (!localState) {
+      notify("サンプルデータで初期表示しました。まずはドラッグ編集を試してください。", "info");
+    }
   }
 
   function bindElements() {
@@ -71,30 +44,15 @@
       "projectList",
       "projectTitle",
       "projectMeta",
-      "ganttWrap",
-      "viewGanttBtn",
-      "viewTableBtn",
-      "taskTableSection",
-      "taskTableBody",
-      "openProjectDrawerBtn",
-      "closeProjectDrawerBtn",
-      "projectDrawer",
-      "projectDrawerBackdrop",
-      "openDetailDrawerBtn",
-      "closeDetailDrawerBtn",
-      "detailDrawer",
-      "cancelProjectEditBtn",
-      "addProjectBtn",
-      "applyProjectInfoBtn",
-      "projectId",
-      "projectName",
-      "projectCustomer",
-      "projectAddress",
-      "projectType",
-      "projectFolder",
-      "projectStatus",
-      "projectManager",
-      "projectMemo",
+      "summaryStart",
+      "summaryEnd",
+      "summaryTaskCount",
+      "summaryStatus",
+      "projectActionRow",
+      "editProjectBtn",
+      "moveProjectToTrashBtn",
+      "restoreProjectBtn",
+      "permanentDeleteProjectBtn",
       "quickStartInput",
       "quickEndInput",
       "startMinusBtn",
@@ -103,58 +61,70 @@
       "endPlusBtn",
       "shiftTasksByStartCheckbox",
       "applyProjectDatesBtn",
-      "addTaskBtn",
-      "generateTemplateBtn",
-      "taskId",
-      "taskName",
-      "taskStart",
-      "taskEnd",
-      "taskProgress",
-      "taskMemo",
-      "taskMemoCount",
-      "saveTaskBtn",
-      "cancelTaskEditBtn",
-      "deleteTaskBtn",
+      "taskTableBody",
+      "changeLogList",
       "viewModeSelect",
       "loadSampleBtn",
       "saveBtn",
+      "addProjectBtn",
+      "addTaskBtn",
+      "generateTemplateBtn",
+      "deleteSelectedBtn",
+      "clearLogsBtn",
       "gasUrlInput",
       "loadFromGasBtn",
+      "saveToGasBtn",
+      "modalBackdrop",
+      "taskForm",
+      "modalTitle",
+      "taskId",
+      "taskName",
+      "taskCategory",
+      "taskStart",
+      "taskEnd",
+      "taskProgress",
+      "taskContractor",
+      "taskStatus",
+      "taskMemo",
+      "closeModalBtn",
+      "cancelModalBtn",
+      "deleteTaskInModalBtn",
+      "projectModalBackdrop",
+      "projectForm",
+      "projectModalTitle",
+      "projectId",
+      "projectName",
+      "projectCustomer",
+      "projectAddress",
+      "projectType",
+      "projectFolder",
+      "projectStart",
+      "projectEnd",
+      "projectStatus",
+      "projectManager",
+      "projectMemo",
+      "closeProjectModalBtn",
+      "cancelProjectModalBtn",
+      "deleteProjectInModalBtn",
       "toast",
     ];
-
     ids.forEach((id) => {
       el[id] = document.getElementById(id);
     });
   }
 
   function bindEvents() {
-    el.openProjectDrawerBtn.addEventListener("click", () => setProjectDrawerOpen(true));
-    el.closeProjectDrawerBtn.addEventListener("click", () => setProjectDrawerOpen(false));
-    el.projectDrawerBackdrop.addEventListener("click", () => setProjectDrawerOpen(false));
-    el.openDetailDrawerBtn.addEventListener("click", () => setDetailDrawerOpen(true));
-    el.closeDetailDrawerBtn.addEventListener("click", () => setDetailDrawerOpen(false));
-
-    el.viewGanttBtn.addEventListener("click", () => {
-      state.viewType = "gantt";
-      renderViewType();
-    });
-    el.viewTableBtn.addEventListener("click", () => {
-      state.viewType = "table";
-      renderViewType();
-    });
-
     el.loadSampleBtn.addEventListener("click", () => {
-      if (!confirm("初期データを再読込します。現在の内容は上書きされます。よろしいですか？")) return;
+      if (!confirm("サンプルデータを再読込します。画面内の未保存変更は上書きされます。よろしいですか？")) return;
       setState(KoujiApi.loadSampleState());
       state.currentFolder = "active";
       ensureCurrentFolderHasSelection();
       renderAll();
-      persistLocalOnly(true, "初期データを再読込しました。");
+      notify("サンプルデータを再読込しました。");
     });
 
-    el.saveBtn.addEventListener("click", async () => {
-      await saveNow();
+    el.saveBtn.addEventListener("click", () => {
+      persistLocal("ローカルに保存しました。GitHub/Vercel公開後も同じブラウザでは保持されます。");
     });
 
     el.folderTabs.addEventListener("click", (event) => {
@@ -165,25 +135,11 @@
       renderAll();
     });
 
-    el.projectList.addEventListener("click", (event) => {
-      const card = event.target.closest(".project-card");
-      if (!card) return;
-      const projectId = card.dataset.projectId;
-      const action = event.target.closest("[data-action]")?.dataset.action || "select";
-
-      if (action === "select") selectProject(projectId);
-      if (action === "edit") {
-        selectProject(projectId);
-        setDetailDrawerOpen(true, "project");
-      }
-      if (action === "trash") moveProjectToTrash(projectId);
-      if (action === "restore") restoreProject(projectId);
-      if (action === "delete-forever") permanentlyDeleteProject(projectId);
-    });
-
-    el.addProjectBtn.addEventListener("click", addProjectQuick);
-    el.applyProjectInfoBtn.addEventListener("click", saveProjectFromDrawer);
-    el.cancelProjectEditBtn.addEventListener("click", resetProjectForm);
+    el.addProjectBtn.addEventListener("click", () => openProjectModal());
+    el.editProjectBtn.addEventListener("click", () => openProjectModal(state.selectedProjectId));
+    el.moveProjectToTrashBtn.addEventListener("click", () => moveProjectToTrash(state.selectedProjectId));
+    el.restoreProjectBtn.addEventListener("click", () => restoreProject(state.selectedProjectId));
+    el.permanentDeleteProjectBtn.addEventListener("click", () => permanentlyDeleteProject(state.selectedProjectId));
 
     el.startMinusBtn.addEventListener("click", () => stepProjectDate("start", -1));
     el.startPlusBtn.addEventListener("click", () => stepProjectDate("start", 1));
@@ -191,37 +147,53 @@
     el.endPlusBtn.addEventListener("click", () => stepProjectDate("end", 1));
     el.applyProjectDatesBtn.addEventListener("click", applyProjectDates);
 
-    el.addTaskBtn.addEventListener("click", () => {
-      if (!prepareNewTaskForm()) return;
-      setDetailDrawerOpen(true, "task");
-      el.taskName.focus();
-    });
+    el.addTaskBtn.addEventListener("click", () => openTaskModal());
     el.generateTemplateBtn.addEventListener("click", generateTemplateTasks);
-    el.saveTaskBtn.addEventListener("click", saveTaskFromDrawer);
-    el.cancelTaskEditBtn.addEventListener("click", resetTaskForm);
-    el.deleteTaskBtn.addEventListener("click", () => {
-      const taskId = el.taskId.value || state.selectedTaskId;
-      if (taskId) deleteTask(taskId);
-    });
-    el.taskMemo.addEventListener("input", syncTaskMemoCount);
+    el.deleteSelectedBtn.addEventListener("click", deleteSelectedTask);
+    el.clearLogsBtn.addEventListener("click", clearLogs);
 
     el.viewModeSelect.addEventListener("change", (event) => {
       state.viewMode = event.target.value;
       renderGantt();
-      markDirty({ queueGas: true });
     });
 
     el.gasUrlInput.addEventListener("change", (event) => {
       KoujiApi.saveGasUrl(event.target.value.trim());
-      notify("GAS URLを保存しました。", "info");
+      notify("GAS URLをブラウザに保存しました。", "info");
     });
 
     el.loadFromGasBtn.addEventListener("click", loadFromGas);
+    el.saveToGasBtn.addEventListener("click", saveToGas);
+
+    el.closeModalBtn.addEventListener("click", closeTaskModal);
+    el.cancelModalBtn.addEventListener("click", closeTaskModal);
+    el.modalBackdrop.addEventListener("click", (event) => {
+      if (event.target === el.modalBackdrop) closeTaskModal();
+    });
+    el.taskForm.addEventListener("submit", saveTaskFromModal);
+    el.deleteTaskInModalBtn.addEventListener("click", () => {
+      const taskId = el.taskId.value;
+      if (!taskId) return closeTaskModal();
+      deleteTask(taskId);
+      closeTaskModal();
+    });
+
+    el.closeProjectModalBtn.addEventListener("click", closeProjectModal);
+    el.cancelProjectModalBtn.addEventListener("click", closeProjectModal);
+    el.projectModalBackdrop.addEventListener("click", (event) => {
+      if (event.target === el.projectModalBackdrop) closeProjectModal();
+    });
+    el.projectForm.addEventListener("submit", saveProjectFromModal);
+    el.deleteProjectInModalBtn.addEventListener("click", () => {
+      const projectId = el.projectId.value;
+      closeProjectModal();
+      if (projectId) moveProjectToTrash(projectId);
+    });
 
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
-      setProjectDrawerOpen(false);
-      setDetailDrawerOpen(false);
+      if (!el.modalBackdrop.hidden) closeTaskModal();
+      if (!el.projectModalBackdrop.hidden) closeProjectModal();
     });
   }
 
@@ -229,36 +201,18 @@
     state.projects = (nextState.projects || []).map(KoujiUtils.normalizeProject);
     state.tasks = (nextState.tasks || []).map(KoujiUtils.normalizeTask);
     state.changeLogs = nextState.changeLogs || [];
-    state.serverRevision = nextState.revision || "";
     state.projects.forEach((project) => {
       project.project_folder = getProjectFolder(project);
     });
-  }
-
-  function getPersistableState() {
-    return {
-      projects: state.projects,
-      tasks: state.tasks,
-      changeLogs: state.changeLogs,
-      revision: state.serverRevision,
-    };
   }
 
   function renderAll() {
     renderFolderTabs();
     renderProjectList();
     renderProjectSummary();
-    renderViewType();
     renderGantt();
     renderTaskTable();
-  }
-
-  function renderViewType() {
-    const showTable = state.viewType === "table";
-    el.taskTableSection.hidden = !showTable;
-    el.ganttWrap.hidden = showTable;
-    el.viewTableBtn.classList.toggle("is-active", showTable);
-    el.viewGanttBtn.classList.toggle("is-active", !showTable);
+    renderLogs();
   }
 
   function renderFolderTabs() {
@@ -288,11 +242,11 @@
       const tasks = KoujiUtils.projectTasks(state.tasks, project.project_id);
       const card = document.createElement("article");
       card.className = `project-card ${project.project_id === state.selectedProjectId ? "is-active" : ""}`;
-      card.dataset.projectId = project.project_id;
+      card.tabIndex = 0;
       card.innerHTML = `
         <button class="project-main" type="button" data-action="select">
           <h3>${escapeHtml(project.project_name)}</h3>
-          <p>${escapeHtml(project.customer_name || "担当未設定")}</p>
+          <p>${escapeHtml(project.customer_name || "顧客未設定")}</p>
           <p>${escapeHtml(project.planned_start)} 〜 ${escapeHtml(project.planned_end)}</p>
           <div class="badge-row">
             <span class="badge">${escapeHtml(project.project_type)}</span>
@@ -307,6 +261,15 @@
             : `<button class="mini-btn danger" type="button" data-action="trash">削除</button>`}
         </div>
       `;
+      card.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-action]")?.dataset.action;
+        if (!action) return;
+        if (action === "select") selectProject(project.project_id);
+        if (action === "edit") openProjectModal(project.project_id);
+        if (action === "trash") moveProjectToTrash(project.project_id);
+        if (action === "restore") restoreProject(project.project_id);
+        if (action === "delete-forever") permanentlyDeleteProject(project.project_id);
+      });
       el.projectList.appendChild(card);
     });
   }
@@ -314,48 +277,56 @@
   function renderProjectSummary() {
     const project = getSelectedProject();
     if (!project) {
-      el.projectTitle.textContent = "工程表";
+      el.projectTitle.textContent = "-";
       el.projectMeta.textContent = "工事を選択してください。";
-      clearProjectForm();
-      clearTaskForm();
+      el.summaryStart.textContent = "-";
+      el.summaryEnd.textContent = "-";
+      el.summaryTaskCount.textContent = "-";
+      el.summaryStatus.textContent = "-";
+      el.quickStartInput.value = "";
+      el.quickEndInput.value = "";
       setProjectControlsDisabled(true);
       return;
     }
 
     const tasks = getSelectedTasks();
     const folder = getProjectFolder(project);
-
-    el.projectTitle.textContent = `${project.project_name}（${tasks.length}工程）`;
+    el.projectTitle.textContent = project.project_name;
     el.projectMeta.textContent = `${project.customer_name || "顧客未設定"} / ${project.site_address || "現場住所未設定"} / 担当：${project.manager || "未設定"} / ${getFolderLabel(folder)}`;
-
-    el.projectId.value = project.project_id;
-    el.projectName.value = project.project_name;
-    el.projectCustomer.value = project.customer_name;
-    el.projectAddress.value = project.site_address;
-    el.projectType.value = project.project_type;
-    el.projectFolder.value = folder;
-    el.projectStatus.value = project.status;
-    el.projectManager.value = project.manager;
-    el.projectMemo.value = project.memo;
+    el.summaryStart.textContent = project.planned_start;
+    el.summaryEnd.textContent = project.planned_end;
+    el.summaryTaskCount.textContent = `${tasks.length}件`;
+    el.summaryStatus.textContent = project.status;
     el.quickStartInput.value = project.planned_start;
     el.quickEndInput.value = project.planned_end;
 
     setProjectControlsDisabled(false);
-    renderTaskEditor();
+    const isTrash = folder === "trash";
+    el.moveProjectToTrashBtn.hidden = isTrash;
+    el.restoreProjectBtn.hidden = !isTrash;
+    el.permanentDeleteProjectBtn.hidden = !isTrash;
   }
 
-  function renderTaskEditor() {
-    const project = getSelectedProject();
-    const task = state.tasks.find((item) => item.id === state.selectedTaskId && item.project_id === project?.project_id);
-    if (!project) {
-      clearTaskForm();
-      return;
-    }
-    if (!task) {
-      prepareNewTaskForm(false);
-      return;
-    }
-    setTaskForm(task);
+  function setProjectControlsDisabled(disabled) {
+    [
+      el.editProjectBtn,
+      el.moveProjectToTrashBtn,
+      el.restoreProjectBtn,
+      el.permanentDeleteProjectBtn,
+      el.quickStartInput,
+      el.quickEndInput,
+      el.startMinusBtn,
+      el.startPlusBtn,
+      el.endMinusBtn,
+      el.endPlusBtn,
+      el.shiftTasksByStartCheckbox,
+      el.applyProjectDatesBtn,
+      el.addTaskBtn,
+      el.generateTemplateBtn,
+      el.deleteSelectedBtn,
+    ].forEach((item) => {
+      if (item) item.disabled = disabled;
+    });
   }
 
   function renderGantt() {
@@ -365,21 +336,23 @@
       return;
     }
     if (!tasks.length) {
-      document.getElementById("gantt").innerHTML = `<div class="empty-state">工程がありません。「工程を追加」または「ひな形を追加」を押してください。</div>`;
+      document.getElementById("gantt").innerHTML = `<div class="empty-state">工程がありません。「工程を追加」または「テンプレート工程を追加」を押してください。</div>`;
       return;
     }
 
     try {
       KoujiGantt.render("#gantt", tasks, {
         viewMode: state.viewMode,
+        scrollTo: getGanttScrollStart(tasks),
         onTaskClick: (taskId) => {
           state.selectedTaskId = taskId;
           renderTaskTable();
-          renderTaskEditor();
-          setDetailDrawerOpen(true, "task");
         },
         onTaskChange: (partialTask, actionType) => {
           updateTask(partialTask.id, partialTask, actionType || "ガント編集");
+        },
+        onIgnoredMove: () => {
+          notify("工程全体の横移動は無効です。左右端をドラッグして開始日・終了日を変更してください。", "info");
         },
       });
     } catch (error) {
@@ -391,190 +364,146 @@
   function renderTaskTable() {
     const tasks = getSelectedTasks();
     el.taskTableBody.innerHTML = "";
-    tasks.forEach((task, index) => {
+    tasks.forEach((task) => {
       const tr = document.createElement("tr");
       tr.className = `task-row ${task.id === state.selectedTaskId ? "is-selected" : ""}`;
-      const progress = Number(task.progress || 0);
       tr.innerHTML = `
-        <td>${index + 1}</td>
-        <td><strong>${escapeHtml(task.name)}</strong></td>
+        <td><strong>${escapeHtml(task.name)}</strong><br><span class="muted">${escapeHtml(task.memo || "")}</span></td>
+        <td>${escapeHtml(task.category)}</td>
         <td>${escapeHtml(task.start)}</td>
         <td>${escapeHtml(task.end)}</td>
-        <td>
-          <div class="progress-cell">
-            <span>${progress}%</span>
-            <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
-          </div>
-        </td>
+        <td>${KoujiUtils.taskDurationText(task)}</td>
+        <td>${Number(task.progress || 0)}%</td>
+        <td>${escapeHtml(task.contractor || "-")}</td>
+        <td><span class="badge">${escapeHtml(task.status)}</span></td>
       `;
       tr.addEventListener("click", () => {
         state.selectedTaskId = task.id;
-        renderTaskEditor();
+        openTaskModal(task.id);
         renderTaskTable();
-        setDetailDrawerOpen(true, "task");
       });
       el.taskTableBody.appendChild(tr);
     });
   }
 
-  function syncTaskMemoCount() {
-    if (!el.taskMemoCount) return;
-    const length = (el.taskMemo.value || "").length;
-    el.taskMemoCount.textContent = `${length} / 200`;
-  }
-
-  function setProjectControlsDisabled(disabled) {
-    [
-      el.applyProjectInfoBtn,
-      el.cancelProjectEditBtn,
-      el.quickStartInput,
-      el.quickEndInput,
-      el.startMinusBtn,
-      el.startPlusBtn,
-      el.endMinusBtn,
-      el.endPlusBtn,
-      el.shiftTasksByStartCheckbox,
-      el.applyProjectDatesBtn,
-      el.addTaskBtn,
-      el.generateTemplateBtn,
-      el.saveTaskBtn,
-      el.cancelTaskEditBtn,
-      el.deleteTaskBtn,
-    ].forEach((item) => {
-      if (item) item.disabled = disabled;
+  function renderLogs() {
+    el.changeLogList.innerHTML = "";
+    const logs = [...state.changeLogs].slice(-20).reverse();
+    if (!logs.length) {
+      const li = document.createElement("li");
+      li.textContent = "まだ変更履歴はありません。";
+      el.changeLogList.appendChild(li);
+      return;
+    }
+    logs.forEach((log) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${escapeHtml(log.action_type)}</strong> / ${escapeHtml(log.task_name || "-")} / ${escapeHtml(log.timestamp)}<br>${escapeHtml(log.memo || "")}`;
+      el.changeLogList.appendChild(li);
     });
   }
 
-  function setProjectDrawerOpen(open) {
-    el.projectDrawer.classList.toggle("is-open", open);
-    el.projectDrawer.setAttribute("aria-hidden", String(!open));
-    el.projectDrawerBackdrop.hidden = !open;
+  function getProjectsByCurrentFolder() {
+    return state.projects
+      .filter((project) => getProjectFolder(project) === state.currentFolder)
+      .sort((a, b) => String(a.planned_start).localeCompare(String(b.planned_start)) || String(a.project_name).localeCompare(String(b.project_name)));
   }
 
-  function setDetailDrawerOpen(open, targetSection = "") {
-    el.detailDrawer.classList.toggle("is-open", open);
-    el.detailDrawer.setAttribute("aria-hidden", String(!open));
-    if (open && targetSection) {
-      const sections = el.detailDrawer.querySelectorAll("details.detail-section");
-      sections.forEach((section) => {
-        section.open = section.dataset.section === targetSection;
-      });
-    }
+  function getSelectedProject() {
+    const project = state.projects.find((item) => item.project_id === state.selectedProjectId);
+    if (project && getProjectFolder(project) === state.currentFolder) return project;
+    const first = getProjectsByCurrentFolder()[0] || null;
+    if (first) state.selectedProjectId = first.project_id;
+    return first;
   }
 
-  function clearProjectForm() {
-    el.projectId.value = "";
-    el.projectName.value = "";
-    el.projectCustomer.value = "";
-    el.projectAddress.value = "";
-    el.projectType.value = "その他";
-    el.projectFolder.value = "active";
-    el.projectStatus.value = "予定";
-    el.projectManager.value = "";
-    el.projectMemo.value = "";
-    el.quickStartInput.value = "";
-    el.quickEndInput.value = "";
-  }
-
-  function clearTaskForm() {
-    el.taskId.value = "";
-    el.taskName.value = "";
-    el.taskStart.value = "";
-    el.taskEnd.value = "";
-    el.taskProgress.value = 0;
-    el.taskMemo.value = "";
-    syncTaskMemoCount();
-  }
-
-  function setTaskForm(task) {
-    el.taskId.value = task.id;
-    el.taskName.value = task.name;
-    el.taskStart.value = task.start;
-    el.taskEnd.value = task.end;
-    el.taskProgress.value = Number(task.progress || 0);
-    el.taskMemo.value = task.memo || "";
-    syncTaskMemoCount();
-  }
-
-  function prepareNewTaskForm() {
+  function getSelectedTasks() {
     const project = getSelectedProject();
-    if (!project) {
-      notify("先に工事を選択してください。", "error");
-      return false;
-    }
-    clearTaskForm();
-    el.taskStart.value = project.planned_start || KoujiUtils.getToday();
-    el.taskEnd.value = project.planned_start || KoujiUtils.getToday();
-    return true;
+    if (!project) return [];
+    return KoujiUtils.projectTasks(state.tasks, project.project_id);
   }
 
-  function addProjectQuick() {
-    const today = KoujiUtils.getToday();
-    const folder = state.currentFolder === "trash" ? "active" : state.currentFolder;
-    const project = KoujiUtils.normalizeProject({
-      project_id: KoujiUtils.generateId("P"),
-      project_name: "新規工事",
-      customer_name: "",
-      site_address: "",
-      project_type: "その他",
-      project_folder: folder,
-      planned_start: today,
-      planned_end: KoujiUtils.addDays(today, 30),
-      status: folder === "pre-contract" ? "契約前" : "予定",
-      manager: "",
-      memo: "",
-      deleted_at: "",
-      previous_folder: "",
-    });
+  function getGanttScrollStart(tasks) {
+    if (!tasks || !tasks.length) return "start";
+    return tasks
+      .map((task) => task.start)
+      .filter(Boolean)
+      .sort((a, b) => String(a).localeCompare(String(b)))[0] || "start";
+  }
 
-    state.projects.push(project);
-    state.currentFolder = folder;
-    state.selectedProjectId = project.project_id;
+  function ensureCurrentFolderHasSelection() {
+    if (!FOLDERS.some((folder) => folder.id === state.currentFolder)) state.currentFolder = "active";
+    const currentProjects = getProjectsByCurrentFolder();
+    const currentSelection = currentProjects.find((project) => project.project_id === state.selectedProjectId);
+    if (!currentSelection) state.selectedProjectId = currentProjects[0]?.project_id || "";
     state.selectedTaskId = "";
-    addProjectLog("工事追加", project, `工事「${project.project_name}」を追加`);
+  }
+
+  function selectProject(projectId) {
+    state.selectedProjectId = projectId;
+    state.selectedTaskId = "";
     renderAll();
-    setProjectDrawerOpen(false);
-    setDetailDrawerOpen(true, "project");
-    markDirty({ queueGas: true, toast: "新規工事を追加しました。" });
+  }
+
+  function addProjectLog(actionType, project, memo) {
+    state.changeLogs.push({
+      log_id: KoujiUtils.generateId("LOG"),
+      timestamp: new Date().toLocaleString("ja-JP"),
+      user: "prototype-user",
+      project_id: project?.project_id || state.selectedProjectId,
+      task_id: "",
+      task_name: project?.project_name || "",
+      action_type: actionType,
+      memo,
+    });
+  }
+
+  function openProjectModal(projectId = "") {
+    const project = projectId ? state.projects.find((item) => item.project_id === projectId) : null;
+    const today = KoujiUtils.getToday();
+    el.projectModalTitle.textContent = project ? "工事情報編集" : "工事追加";
+    el.projectId.value = project?.project_id || "";
+    el.projectName.value = project?.project_name || "";
+    el.projectCustomer.value = project?.customer_name || "";
+    el.projectAddress.value = project?.site_address || "";
+    el.projectType.value = project?.project_type || "その他";
+    el.projectFolder.value = project ? getProjectFolder(project) : state.currentFolder === "trash" ? "active" : state.currentFolder;
+    el.projectStart.value = project?.planned_start || today;
+    el.projectEnd.value = project?.planned_end || KoujiUtils.addDays(today, 30);
+    el.projectStatus.value = project?.status || "予定";
+    el.projectManager.value = project?.manager || "";
+    el.projectMemo.value = project?.memo || "";
+    el.deleteProjectInModalBtn.style.visibility = project && getProjectFolder(project) !== "trash" ? "visible" : "hidden";
+    el.projectModalBackdrop.hidden = false;
+    el.projectModalBackdrop.classList.add("is-open");
+    el.projectModalBackdrop.setAttribute("aria-hidden", "false");
     el.projectName.focus();
   }
 
-  function resetProjectForm() {
-    const selected = getSelectedProject();
-    if (!selected) return;
-    renderProjectSummary();
-    notify("工事の入力を取り消しました。", "info");
+  function closeProjectModal() {
+    el.projectModalBackdrop.hidden = true;
+    el.projectModalBackdrop.classList.remove("is-open");
+    el.projectModalBackdrop.setAttribute("aria-hidden", "true");
+    el.projectForm.reset();
   }
 
-  function resetTaskForm() {
-    const selectedTask = state.tasks.find((task) => task.id === state.selectedTaskId);
-    if (selectedTask) {
-      setTaskForm(selectedTask);
-    } else {
-      prepareNewTaskForm();
-    }
-    notify("工程の入力を取り消しました。", "info");
-  }
+  function saveProjectFromModal(event) {
+    event.preventDefault();
+    const projectId = el.projectId.value || KoujiUtils.generateId("P");
+    const plannedStart = el.projectStart.value;
+    const plannedEnd = el.projectEnd.value;
 
-  function saveProjectFromDrawer() {
-    const selected = getSelectedProject();
-    if (!selected) {
-      notify("保存する工事がありません。", "error");
-      return;
-    }
-
-    const plannedStart = el.quickStartInput.value || selected.planned_start;
-    const plannedEnd = el.quickEndInput.value || selected.planned_end;
     if (KoujiUtils.toDate(plannedEnd) < KoujiUtils.toDate(plannedStart)) {
       notify("完工予定日は着工予定日以降にしてください。", "error");
       return;
     }
 
+    const existingIndex = state.projects.findIndex((project) => project.project_id === projectId);
+    const existing = existingIndex >= 0 ? state.projects[existingIndex] : null;
     const folder = el.projectFolder.value;
     const project = KoujiUtils.normalizeProject({
-      ...selected,
-      project_id: selected.project_id,
-      project_name: el.projectName.value.trim() || "未設定工事",
+      ...(existing || {}),
+      project_id: projectId,
+      project_name: el.projectName.value.trim(),
       customer_name: el.projectCustomer.value.trim(),
       site_address: el.projectAddress.value.trim(),
       project_type: el.projectType.value,
@@ -584,24 +513,28 @@
       status: el.projectStatus.value,
       manager: el.projectManager.value.trim(),
       memo: el.projectMemo.value.trim(),
-      deleted_at: folder === "trash" ? selected.deleted_at || new Date().toISOString() : "",
-      previous_folder: folder === "trash" ? selected.previous_folder || getProjectFolder(selected) : "",
+      deleted_at: folder === "trash" ? existing?.deleted_at || new Date().toISOString() : "",
+      previous_folder: folder === "trash" ? existing?.previous_folder || existing?.project_folder || "active" : "",
     });
 
-    const index = state.projects.findIndex((item) => item.project_id === project.project_id);
-    if (index < 0) return;
-
-    const dateDelta = KoujiUtils.dayDelta(selected.planned_start, project.planned_start);
-    state.projects[index] = project;
-    if (dateDelta !== 0 && el.shiftTasksByStartCheckbox.checked) {
-      shiftProjectTasks(project.project_id, dateDelta);
+    if (existingIndex >= 0) {
+      const dateDelta = KoujiUtils.dayDelta(existing.planned_start, project.planned_start);
+      state.projects[existingIndex] = project;
+      if (dateDelta !== 0 && confirm("着工予定日が変わっています。工程全体も同じ日数だけ移動しますか？")) {
+        shiftProjectTasks(project.project_id, dateDelta);
+      }
+      addProjectLog("工事情報編集", project, `工事「${project.project_name}」を編集`);
+    } else {
+      state.projects.push(project);
+      addProjectLog("工事追加", project, `工事「${project.project_name}」を追加`);
     }
-    addProjectLog("工事情報編集", project, `工事「${project.project_name}」を編集`);
 
     state.currentFolder = getProjectFolder(project);
     state.selectedProjectId = project.project_id;
+    state.selectedTaskId = "";
+    closeProjectModal();
     renderAll();
-    markDirty({ queueGas: true, toast: "工事情報を保存しました。" });
+    persistLocal("工事情報を保存しました。");
   }
 
   function moveProjectToTrash(projectId) {
@@ -622,7 +555,7 @@
     state.selectedProjectId = project.project_id;
     state.selectedTaskId = "";
     renderAll();
-    markDirty({ queueGas: true, toast: "工事をゴミ箱へ移動しました。" });
+    persistLocal("工事をゴミ箱へ移動しました。");
   }
 
   function restoreProject(projectId) {
@@ -640,7 +573,7 @@
     state.currentFolder = restoreFolder;
     state.selectedProjectId = project.project_id;
     renderAll();
-    markDirty({ queueGas: true, toast: "工事を復元しました。" });
+    persistLocal("工事を復元しました。");
   }
 
   function permanentlyDeleteProject(projectId) {
@@ -651,7 +584,6 @@
       return;
     }
     if (!confirm(`工事「${project.project_name}」を完全削除しますか？\n関連する工程も削除されます。この操作は元に戻せません。`)) return;
-
     state.projects = state.projects.filter((item) => item.project_id !== projectId);
     state.tasks = state.tasks.filter((task) => task.project_id !== projectId);
     state.changeLogs = state.changeLogs.filter((log) => log.project_id !== projectId);
@@ -659,7 +591,7 @@
     state.selectedTaskId = "";
     ensureCurrentFolderHasSelection();
     renderAll();
-    markDirty({ queueGas: true, toast: "工事を完全削除しました。" });
+    persistLocal("工事を完全削除しました。");
   }
 
   function applyProjectDates() {
@@ -667,7 +599,6 @@
     if (!project) return;
     const newStart = el.quickStartInput.value;
     const newEnd = el.quickEndInput.value;
-
     if (!newStart || !newEnd) {
       notify("着工予定日と完工予定日を入力してください。", "error");
       return;
@@ -679,7 +610,6 @@
 
     const index = state.projects.findIndex((item) => item.project_id === project.project_id);
     if (index < 0) return;
-
     const oldStart = project.planned_start;
     const oldEnd = project.planned_end;
     const dateDelta = KoujiUtils.dayDelta(oldStart, newStart);
@@ -694,19 +624,16 @@
       shiftProjectTasks(project.project_id, dateDelta);
     }
 
-    addProjectLog(
-      "工事日程変更",
-      state.projects[index],
-      `${oldStart}〜${oldEnd} → ${newStart}〜${newEnd}${dateDelta !== 0 && el.shiftTasksByStartCheckbox.checked ? ` / 工程も${dateDelta > 0 ? "+" : ""}${dateDelta}日移動` : ""}`
-    );
+    addProjectLog("工事日程変更", state.projects[index], `${oldStart}〜${oldEnd} → ${newStart}〜${newEnd}${dateDelta !== 0 && el.shiftTasksByStartCheckbox.checked ? ` / 工程も${dateDelta > 0 ? "+" : ""}${dateDelta}日移動` : ""}`);
     renderAll();
-    markDirty({ queueGas: true, toast: "工事日程を変更しました。" });
+    persistLocal("工事日程を変更しました。");
   }
 
   function stepProjectDate(target, amount) {
     const input = target === "start" ? el.quickStartInput : el.quickEndInput;
     if (!input.value) input.value = KoujiUtils.getToday();
     input.value = KoujiUtils.addDays(input.value, amount);
+    applyProjectDates();
   }
 
   function shiftProjectTasks(projectId, dateDelta) {
@@ -722,19 +649,44 @@
     });
   }
 
-  function saveTaskFromDrawer() {
+  function openTaskModal(taskId = "") {
     const project = getSelectedProject();
     if (!project) {
       notify("先に工事を選択してください。", "error");
       return;
     }
+
+    const task = taskId ? state.tasks.find((item) => item.id === taskId) : null;
+    el.modalTitle.textContent = task ? "工程編集" : "工程追加";
+    el.taskId.value = task?.id || "";
+    el.taskName.value = task?.name || "";
+    el.taskCategory.value = task?.category || "その他";
+    el.taskStart.value = task?.start || project.planned_start || KoujiUtils.getToday();
+    el.taskEnd.value = task?.end || task?.start || project.planned_start || KoujiUtils.getToday();
+    el.taskProgress.value = task?.progress ?? 0;
+    el.taskContractor.value = task?.contractor || "";
+    el.taskStatus.value = task?.status || "未着手";
+    el.taskMemo.value = task?.memo || "";
+    el.deleteTaskInModalBtn.style.visibility = task ? "visible" : "hidden";
+    el.modalBackdrop.hidden = false;
+    el.modalBackdrop.classList.add("is-open");
+    el.modalBackdrop.setAttribute("aria-hidden", "false");
+    el.taskName.focus();
+  }
+
+  function closeTaskModal() {
+    el.modalBackdrop.hidden = true;
+    el.modalBackdrop.classList.remove("is-open");
+    el.modalBackdrop.setAttribute("aria-hidden", "true");
+    el.taskForm.reset();
+  }
+
+  function saveTaskFromModal(event) {
+    event.preventDefault();
+    const project = getSelectedProject();
     const taskId = el.taskId.value || KoujiUtils.generateId("T");
     const start = el.taskStart.value;
     const end = el.taskEnd.value;
-    if (!start || !end) {
-      notify("開始日と終了日を入力してください。", "error");
-      return;
-    }
     if (KoujiUtils.toDate(end) < KoujiUtils.toDate(start)) {
       notify("終了日は開始日以降にしてください。", "error");
       return;
@@ -744,13 +696,13 @@
     const task = KoujiUtils.normalizeTask({
       id: taskId,
       project_id: project.project_id,
-      name: el.taskName.value.trim() || "未設定工程",
-      category: existingTask?.category || "その他",
+      name: el.taskName.value.trim(),
+      category: el.taskCategory.value,
       start,
       end,
       progress: el.taskProgress.value,
-      contractor: existingTask?.contractor || "",
-      status: existingTask?.status || "未着手",
+      contractor: el.taskContractor.value.trim(),
+      status: el.taskStatus.value,
       dependencies: existingTask?.dependencies || "",
       memo: el.taskMemo.value.trim(),
       source: el.taskId.value ? "manual" : "manual-add",
@@ -767,8 +719,9 @@
     }
 
     state.selectedTaskId = task.id;
+    closeTaskModal();
     renderAll();
-    markDirty({ queueGas: true, toast: "工程を保存しました。" });
+    persistLocal("工程を保存しました。");
   }
 
   function updateTask(taskId, partialTask, actionType = "工程更新") {
@@ -787,7 +740,8 @@
     addLog(actionType, taskId, buildChangeMemo(before, next));
     renderProjectSummary();
     renderTaskTable();
-    markDirty({ queueGas: true });
+    renderLogs();
+    KoujiApi.saveLocalState(state);
   }
 
   function buildChangeMemo(before, next) {
@@ -802,6 +756,14 @@
     return `「${next.name}」 ${changes.join(" / ")}`;
   }
 
+  function deleteSelectedTask() {
+    if (!state.selectedTaskId) {
+      notify("削除する工程を一覧またはガントから選択してください。", "error");
+      return;
+    }
+    deleteTask(state.selectedTaskId);
+  }
+
   function deleteTask(taskId) {
     const task = state.tasks.find((item) => item.id === taskId);
     if (!task) return;
@@ -810,7 +772,7 @@
     state.selectedTaskId = "";
     addLog("工程削除", taskId, `「${task.name}」を削除`);
     renderAll();
-    markDirty({ queueGas: true, toast: "工程を削除しました。" });
+    persistLocal("工程を削除しました。");
   }
 
   function generateTemplateTasks() {
@@ -842,7 +804,14 @@
     state.tasks.push(...templateTasks);
     addLog("テンプレート追加", "", `${templateTasks.length}件の工程を追加`);
     renderAll();
-    markDirty({ queueGas: true, toast: "テンプレート工程を追加しました。" });
+    persistLocal("テンプレート工程を追加しました。不要工程は削除・調整してください。");
+  }
+
+  function clearLogs() {
+    if (!confirm("変更履歴をクリアしますか？")) return;
+    state.changeLogs = [];
+    renderLogs();
+    persistLocal("変更履歴をクリアしました。", false);
   }
 
   async function loadFromGas() {
@@ -854,91 +823,24 @@
       setState(data);
       ensureCurrentFolderHasSelection();
       renderAll();
-      persistLocalOnly(false);
-      notify("GASからデータを読み込みました。");
+      persistLocal("GASからデータを読み込みました。", false);
     } catch (error) {
       console.error(error);
       notify(error.message, "error");
     }
   }
 
-  async function saveNow() {
-    persistLocalOnly(false);
+  async function saveToGas() {
     const gasUrl = el.gasUrlInput.value.trim();
-    if (!gasUrl) {
-      notify("ローカルに保存しました。", "info");
-      return;
-    }
-    await saveToGas({ isAuto: false });
-  }
-
-  async function saveToGas({ isAuto }) {
-    const gasUrl = el.gasUrlInput.value.trim();
-    if (!gasUrl) return;
-    if (state.isSavingToGas) {
-      state.gasDirty = true;
-      return;
-    }
-
-    state.isSavingToGas = true;
     KoujiApi.saveGasUrl(gasUrl);
-
     try {
-      if (!isAuto) notify("共有データへ保存中です...", "info");
-      const result = await KoujiApi.saveToGas(gasUrl, getPersistableState(), state.serverRevision);
-      state.serverRevision = result.revision || state.serverRevision;
-      state.gasDirty = false;
-      persistLocalOnly(false);
-      if (!isAuto) notify("保存しました。");
+      notify("GASへ保存中です...", "info");
+      await KoujiApi.saveToGas(gasUrl, state);
+      persistLocal("GASとローカルに保存しました。", false);
     } catch (error) {
       console.error(error);
-      if (error.code === "CONFLICT") {
-        notify("他の端末で先に更新されています。GASから再読込して確認してください。", "error");
-      } else {
-        notify(error.message || "保存に失敗しました。", "error");
-      }
-    } finally {
-      state.isSavingToGas = false;
-      if (state.gasDirty) {
-        scheduleGasAutosave();
-      }
+      notify(error.message, "error");
     }
-  }
-
-  function scheduleGasAutosave() {
-    window.clearTimeout(state.autosaveTimer);
-    state.autosaveTimer = window.setTimeout(() => {
-      saveToGas({ isAuto: true }).catch((error) => {
-        console.error(error);
-      });
-    }, AUTOSAVE_DELAY_MS);
-  }
-
-  function persistLocalOnly(showToast = false, message = "") {
-    KoujiApi.saveLocalState(getPersistableState());
-    if (showToast && message) notify(message);
-  }
-
-  function markDirty({ queueGas = false, toast = "" } = {}) {
-    persistLocalOnly(false);
-    if (toast) notify(toast);
-    if (queueGas) {
-      state.gasDirty = true;
-      if (el.gasUrlInput.value.trim()) scheduleGasAutosave();
-    }
-  }
-
-  function addProjectLog(actionType, project, memo) {
-    state.changeLogs.push({
-      log_id: KoujiUtils.generateId("LOG"),
-      timestamp: new Date().toLocaleString("ja-JP"),
-      user: "prototype-user",
-      project_id: project?.project_id || state.selectedProjectId,
-      task_id: "",
-      task_name: project?.project_name || "",
-      action_type: actionType,
-      memo,
-    });
   }
 
   function addLog(actionType, taskId, memo) {
@@ -955,41 +857,6 @@
     });
   }
 
-  function getProjectsByCurrentFolder() {
-    return state.projects
-      .filter((project) => getProjectFolder(project) === state.currentFolder)
-      .sort((a, b) => String(a.planned_start).localeCompare(String(b.planned_start)) || String(a.project_name).localeCompare(String(b.project_name)));
-  }
-
-  function getSelectedProject() {
-    const project = state.projects.find((item) => item.project_id === state.selectedProjectId);
-    if (project && getProjectFolder(project) === state.currentFolder) return project;
-    const first = getProjectsByCurrentFolder()[0] || null;
-    if (first) state.selectedProjectId = first.project_id;
-    return first;
-  }
-
-  function getSelectedTasks() {
-    const project = getSelectedProject();
-    if (!project) return [];
-    return KoujiUtils.projectTasks(state.tasks, project.project_id);
-  }
-
-  function ensureCurrentFolderHasSelection() {
-    if (!FOLDERS.some((folder) => folder.id === state.currentFolder)) state.currentFolder = "active";
-    const currentProjects = getProjectsByCurrentFolder();
-    const currentSelection = currentProjects.find((project) => project.project_id === state.selectedProjectId);
-    if (!currentSelection) state.selectedProjectId = currentProjects[0]?.project_id || "";
-    state.selectedTaskId = "";
-  }
-
-  function selectProject(projectId) {
-    state.selectedProjectId = projectId;
-    state.selectedTaskId = "";
-    renderAll();
-    setProjectDrawerOpen(false);
-  }
-
   function getProjectFolder(project) {
     if (!project) return "active";
     if (isValidFolder(project.project_folder)) return project.project_folder;
@@ -1004,6 +871,11 @@
 
   function getFolderLabel(folderId) {
     return FOLDERS.find((folder) => folder.id === folderId)?.label || "未分類";
+  }
+
+  function persistLocal(message, showToast = true) {
+    KoujiApi.saveLocalState(state);
+    if (showToast) notify(message);
   }
 
   function notify(message, type = "success") {

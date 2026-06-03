@@ -186,3 +186,23 @@ log_id, timestamp, user, project_id, task_id, task_name, action_type, memo
 - GASの `01_projects` に `project_folder / deleted_at / previous_folder` 列を追加
 
 既存スプレッドシートを使う場合は、GASの `setupSheets()` を再実行してヘッダーを更新してください。その後、画面側から一度「GAS保存」を行うと新しい列構成で保存されます。
+
+## v4 ガント表示・操作改善
+
+- 工程名列を広めに表示するCSSを追加しました。
+- 日表示のカレンダー幅を広げ、1日単位の視認性を上げました。
+- 表示単位「日 / 週 / 月」の切替をFrappe Gantt側へ明示的に反映するようにしました。
+- 初期表示位置は、選択中工事の最初の工程開始日を基準にしました。
+- バー中央の横移動は無効扱いにし、左右端のドラッグによる期間変更を使う運用に寄せました。
+- 左右端のドラッグハンドルを太くし、掴みやすくしました。
+- Frappe GanttのCDNを `1.2.2` に固定しました。
+
+差し替え対象ファイル：
+
+```text
+index.html
+css/style.css
+js/app.js
+js/gantt.js
+README.md
+```
