@@ -238,7 +238,7 @@ textarea:disabled {
 
 .table-gantt-head {
   display: grid;
-  grid-template-columns: 520px 1fr;
+  grid-template-columns: 360px 1fr;
   background: #fff;
   border-bottom: 1px solid var(--line);
 }
@@ -246,7 +246,7 @@ textarea:disabled {
 .tg-left-head,
 .tg-left-row {
   display: grid;
-  grid-template-columns: 56px 220px 80px 80px 84px;
+  grid-template-columns: 56px 1fr 80px 80px 84px;
   align-items: center;
 }
 
@@ -318,7 +318,7 @@ textarea:disabled {
 
 .table-gantt-body {
   display: grid;
-  grid-template-columns: 520px 1fr;
+  grid-template-columns: 360px 1fr;
   overflow: auto;
 }
 
@@ -408,18 +408,22 @@ textarea:disabled {
 .tg-grid-bar {
   position: absolute;
   top: 14px;
-  cursor: pointer;
   height: 24px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--bar-color) 55%, white);
-  background: color-mix(in srgb, var(--bar-color) 18%, white);
+  border-radius: 6px;
+  border: 1px solid #e97820;
+  background: #fff4e9;
   overflow: visible;
 }
 
 .tg-grid-bar-progress {
   height: 100%;
-  background: var(--bar-color);
-  border-radius: 999px;
+  background: linear-gradient(180deg, #ee861f 0%, #e36b12 100%);
+  border-radius: 5px 0 0 5px;
+}
+
+.tg-grid-bar-progress[style="width:100%"],
+.tg-grid-bar-progress[style="width:100%;"] {
+  border-radius: 5px;
 }
 
 .tg-grid-bar-label {
@@ -429,30 +433,32 @@ textarea:disabled {
   place-items: center;
   font-size: 0.78rem;
   font-weight: 800;
-  color: #fff;
+  color: #d9630f;
   pointer-events: none;
+}
+
+.tg-grid-bar-label.is-label-light {
+  color: #fff;
 }
 
 .tg-resize-handle {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 28px;
-  border: 2px solid var(--bar-color);
-  background: #fff;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  opacity: 0;
   cursor: ew-resize;
-  z-index: 2;
 }
 
-.tg-resize-handle.start {
-  left: -9px;
-  border-radius: 999px 4px 4px 999px;
+.tg-resize-start {
+  left: -6px;
 }
 
-.tg-resize-handle.end {
-  right: -9px;
-  border-radius: 4px 999px 999px 4px;
+.tg-resize-end {
+  right: -6px;
 }
 
 .task-table-card {
